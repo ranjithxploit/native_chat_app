@@ -1,0 +1,1 @@
+PS D:\projects\chat_app> $env:REACT_NATIVE_PACKAGER_HOSTNAME="ip_lol"; npx expo start --clear
