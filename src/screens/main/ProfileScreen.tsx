@@ -36,6 +36,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [darkMode, setDarkMode] = useState(true);
+  const [imageKey, setImageKey] = useState(0); // Force re-render of Image component
   const [errors, setErrors] = useState({
     username: '',
     currentPassword: '',
@@ -161,11 +162,20 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
       const avatarUrl = await imageService.uploadProfilePicture(user!.id, imageUri);
 
       // Update user profile
-      const updatedUser = await authService.updateProfile(user!.id, {
+      await authService.updateProfile(user!.id, {
         avatar_url: avatarUrl,
       });
 
-      setUser(updatedUser);
+      // Fetch the fresh user data to ensure avatar displays
+      console.log('🔄 Refreshing user data after avatar upload...');
+      const freshUser = await authService.getCurrentUser();
+      if (freshUser) {
+        setUser(freshUser);
+        // Force Image component to re-render by changing key
+        setImageKey(prev => prev + 1);
+        console.log('✅ Avatar URL set:', freshUser.avatar_url);
+      }
+
       Alert.alert('Success', 'Profile picture updated!');
     } catch (error: any) {
       console.error('❌ Image pick error:', error);
@@ -211,10 +221,17 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
           disabled={uploadingImage}
           style={styles.avatarContainer}
         >
-          {user.avatar_url ? (
+          {user.avatar_url && user.avatar_url.trim().length > 0 ? (
             <Image
+              key={imageKey}
               source={{ uri: user.avatar_url }}
               style={styles.avatar}
+              onError={(e) => {
+                console.warn('⚠️  Image load error:', e.nativeEvent.error);
+              }}
+              onLoad={() => {
+                console.log('✅ Avatar image loaded successfully');
+              }}
             />
           ) : (
             <View style={styles.avatar}>

@@ -15,7 +15,6 @@ import {
   ActivityIndicator,
   RefreshControl,
   TextInput,
-  SearchBar as RNSearchBar,
 } from 'react-native';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { colors, spacing, typography, borderRadius, shadows } from '../../theme/theme';
@@ -153,9 +152,16 @@ export const FriendsListScreen: React.FC<FriendsListScreenProps> = ({ navigation
       style={styles.friendItem}
       onPress={() => handleSelectFriend(item)}
     >
-      <View style={styles.friendAvatar}>
-        <Text style={styles.avatarText}>{item.username?.charAt(0).toUpperCase()}</Text>
-      </View>
+      {item.avatar_url && item.avatar_url.trim().length > 0 ? (
+        <Image
+          source={{ uri: item.avatar_url + '?t=' + new Date().getTime() }}
+          style={styles.friendAvatarImage}
+        />
+      ) : (
+        <View style={styles.friendAvatar}>
+          <Text style={styles.avatarText}>{item.username?.charAt(0).toUpperCase()}</Text>
+        </View>
+      )}
       <View style={styles.friendInfo}>
         <Text style={styles.friendName}>{item.username}</Text>
         <Text style={styles.friendEmail}>{item.email}</Text>
@@ -172,11 +178,18 @@ export const FriendsListScreen: React.FC<FriendsListScreenProps> = ({ navigation
   const renderRequestItem = ({ item }: any) => (
     <View style={styles.requestItem}>
       <View style={styles.requestInfo}>
-        <View style={styles.friendAvatar}>
-          <Text style={styles.avatarText}>
-            {item.sender?.username?.charAt(0).toUpperCase()}
-          </Text>
-        </View>
+        {item.sender?.avatar_url && item.sender.avatar_url.trim().length > 0 ? (
+          <Image
+            source={{ uri: item.sender.avatar_url + '?t=' + new Date().getTime() }}
+            style={styles.friendAvatarImage}
+          />
+        ) : (
+          <View style={styles.friendAvatar}>
+            <Text style={styles.avatarText}>
+              {item.sender?.username?.charAt(0).toUpperCase()}
+            </Text>
+          </View>
+        )}
         <View>
           <Text style={styles.friendName}>{item.sender?.username}</Text>
           <Text style={styles.requestTime}>Sent a friend request</Text>
@@ -201,9 +214,16 @@ export const FriendsListScreen: React.FC<FriendsListScreenProps> = ({ navigation
 
   const renderSearchResult = ({ item }: any) => (
     <TouchableOpacity style={styles.searchResultItem}>
-      <View style={styles.friendAvatar}>
-        <Text style={styles.avatarText}>{item.username?.charAt(0).toUpperCase()}</Text>
-      </View>
+      {item.avatar_url && item.avatar_url.trim().length > 0 ? (
+        <Image
+          source={{ uri: item.avatar_url + '?t=' + new Date().getTime() }}
+          style={styles.friendAvatarImage}
+        />
+      ) : (
+        <View style={styles.friendAvatar}>
+          <Text style={styles.avatarText}>{item.username?.charAt(0).toUpperCase()}</Text>
+        </View>
+      )}
       <View style={styles.friendInfo}>
         <Text style={styles.friendName}>{item.username}</Text>
         <Text style={styles.friendEmail}>{item.email}</Text>
@@ -278,7 +298,7 @@ export const FriendsListScreen: React.FC<FriendsListScreenProps> = ({ navigation
             <ActivityIndicator size="large" color={colors.primary} style={styles.loader} />
           ) : (
             <FlatList
-              data={activeTab === 'friends' ? friends : friendRequests}
+              data={activeTab === 'friends' ? friends : (friendRequests as any)}
               renderItem={
                 activeTab === 'friends' ? renderFriendItem : renderRequestItem
               }
@@ -386,6 +406,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  friendAvatarImage: {
+    width: 50,
+    height: 50,
+    borderRadius: borderRadius.full,
   },
   avatarText: {
     color: colors.background,
