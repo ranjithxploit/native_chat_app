@@ -1,0 +1,37 @@
+{
+  "expo": {
+    "name": "ai-chat-app",
+    "displayName": "AI Chat App",
+    "description": "AI-powered real-time chat application",
+    "version": "1.0.0",
+    "slug": "ai-chat-app",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.example.aichatapp"
+    },
+    "android": {
+      "package": "com.example.aichatapp",
+      "permissions": [
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "CAMERA",
+        "RECORD_AUDIO"
+      ]
+    },
+    "web": {
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow app to access your photos",
+          "cameraPermission": "Allow app to access your camera"
+        }
+      ]
+    ],
+    "scheme": "aichatapp"
+  }
+}
