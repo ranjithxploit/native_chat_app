@@ -27,8 +27,10 @@ export const imageService = {
         encoding: FileSystem.EncodingType.Base64,
       });
 
-      // Generate profile pic key
-      const profileKey = `profile-pictures/${userId}/avatar`;
+      // Generate profile pic key - using simplified path for RLS
+      const profileKey = `${userId}/avatar.jpg`;
+
+      console.log('📤 Uploading profile picture to:', profileKey);
 
       // Upload to storage (overwrite existing)
       const { data, error } = await supabase.storage
@@ -38,7 +40,10 @@ export const imageService = {
           upsert: true, // Overwrite if exists
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Storage upload error:', error);
+        throw error;
+      }
 
       // Get public URL
       const {

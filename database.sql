@@ -111,7 +111,6 @@ CREATE POLICY "Users can update their own profile"
   FOR UPDATE
   USING (auth.uid() = id);
 
--- RLS Policies for friend_requests
 CREATE POLICY "Users can view their own friend requests"
   ON friend_requests
   FOR SELECT
