@@ -93,11 +93,36 @@ export const authService = {
         .eq('id', authData.user.id)
         .single();
 
-      if (userError) return null;
+      if (userError) {
+        console.warn('⚠️  User profile not found in database, creating one...');
+        
+        // If user profile doesn't exist, create it
+        const { data: newUser, error: createError } = await supabase
+          .from('users')
+          .insert([
+            {
+              id: authData.user.id,
+              email: authData.user.email || '',
+              username: authData.user.user_metadata?.username || `user_${authData.user.id.slice(0, 8)}`,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            },
+          ])
+          .select()
+          .single();
+
+        if (createError) {
+          console.error('❌ Failed to create user profile:', createError);
+          return null;
+        }
+
+        console.log('✅ User profile created:', newUser.email);
+        return newUser;
+      }
 
       return userData;
     } catch (error) {
-      console.error('Get current user error:', error);
+      console.error('❌ Get current user error:', error);
       return null;
     }
   },
@@ -107,6 +132,48 @@ export const authService = {
    */
   async updateProfile(userId: string, updates: Partial<User>) {
     try {
+      console.log('📝 Updating profile for user:', userId);
+
+      // First, check if user exists
+      const { data: existingUser, error: checkError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (checkError && checkError.code !== 'PGRST116') {
+        throw checkError;
+      }
+
+      if (!existingUser) {
+        console.warn('⚠️  User profile does not exist, creating it...');
+        // Create the profile if it doesn't exist
+        const { data: newUser, error: createError } = await supabase
+          .from('users')
+          .insert([
+            {
+              id: userId,
+              email: updates.email || 'unknown@example.com',
+              username: updates.username || `user_${userId.slice(0, 8)}`,
+              avatar_url: updates.avatar_url,
+              bio: updates.bio,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            },
+          ])
+          .select()
+          .single();
+
+        if (createError) {
+          console.error('❌ Failed to create user profile:', createError);
+          throw createError;
+        }
+
+        console.log('✅ User profile created:', newUser.email);
+        return newUser;
+      }
+
+      // User exists, update the profile
       const { data, error } = await supabase
         .from('users')
         .update({
@@ -117,11 +184,15 @@ export const authService = {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Failed to update profile:', error);
+        throw error;
+      }
 
+      console.log('✅ Profile updated successfully');
       return data;
     } catch (error) {
-      console.error('Update profile error:', error);
+      console.error('❌ Update profile error:', error);
       throw error;
     }
   },

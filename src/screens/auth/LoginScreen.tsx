@@ -66,25 +66,33 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
       if (!result.user) {
         throw new Error('Login failed: No user returned');
       }
+
+      // Set session first
       setSession(result.session);
+      
+      // Wait a moment for session to persist
       await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Try to get complete user profile from database
       const user = await authService.getCurrentUser();
+      
       if (user) {
         setUser(user);
-        console.log('Login successful, user set:', user.email);
+        console.log('✅ Login successful, user fetched from database:', user.email);
       } else {
+        // This shouldn't happen now that getCurrentUser creates the profile if missing
         const fallbackUser = {
           id: result.user.id,
           email: result.user.email || '',
-          username: result.user.user_metadata?.username || '',
+          username: result.user.user_metadata?.username || `user_${result.user.id.slice(0, 8)}`,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         };
         setUser(fallbackUser as any);
-        console.log('Login successful (fallback user), email:', fallbackUser.email);
+        console.log('⚠️  Using fallback user:', fallbackUser.email);
       }
     } catch (error: any) {
-      console.error('Login error:', error);
+      console.error('❌ Login error:', error);
       Alert.alert('Login Error', error.message || 'Failed to login. Please try again.');
     } finally {
       setLoading(false);
