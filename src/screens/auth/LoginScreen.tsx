@@ -66,21 +66,13 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
       if (!result.user) {
         throw new Error('Login failed: No user returned');
       }
-
-      // Set session first
       setSession(result.session);
-      
-      // Wait a moment for session to be set
       await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Get user and update store
       const user = await authService.getCurrentUser();
-      
       if (user) {
         setUser(user);
-        console.log('✅ Login successful, user set:', user.email);
+        console.log('Login successful, user set:', user.email);
       } else {
-        // If getCurrentUser fails, create user object from auth data
         const fallbackUser = {
           id: result.user.id,
           email: result.user.email || '',
@@ -89,10 +81,10 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
           updated_at: new Date().toISOString(),
         };
         setUser(fallbackUser as any);
-        console.log('✅ Login successful (fallback user), email:', fallbackUser.email);
+        console.log('Login successful (fallback user), email:', fallbackUser.email);
       }
     } catch (error: any) {
-      console.error('❌ Login error:', error);
+      console.error('Login error:', error);
       Alert.alert('Login Error', error.message || 'Failed to login. Please try again.');
     } finally {
       setLoading(false);

@@ -1,6 +1,6 @@
 /**
  * Profile Screen
- * User profile management with username and password change
+ * User profile management with username, password change, and profile picture upload
  */
 
 import React, { useState } from 'react';
@@ -13,11 +13,14 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Switch,
+  Image,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { colors, spacing, typography, borderRadius } from '../../theme/theme';
 import { Button } from '../../components/Button';
 import { CustomTextInput } from '../../components/TextInput';
 import { authService } from '../../services/authService';
+import { imageService } from '../../services/imageService';
 import { useAuthStore } from '../../store/useStore';
 
 interface ProfileScreenProps {
@@ -31,6 +34,8 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [darkMode, setDarkMode] = useState(true);
   const [errors, setErrors] = useState({
     username: '',
     currentPassword: '',
@@ -43,7 +48,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
 
   React.useEffect(() => {
     if (user) {
-      setUsername(user.username);
+      setUsername(user.username || '');
     }
   }, [user]);
 
@@ -130,6 +135,46 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
     }
   };
 
+  const handlePickImage = async () => {
+    try {
+      // Request permission
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'Camera roll permission is required to upload images');
+        return;
+      }
+
+      // Pick image
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (result.canceled) return;
+
+      const imageUri = result.assets[0].uri;
+
+      // Upload to Supabase
+      setUploadingImage(true);
+      const avatarUrl = await imageService.uploadProfilePicture(user!.id, imageUri);
+
+      // Update user profile
+      const updatedUser = await authService.updateProfile(user!.id, {
+        avatar_url: avatarUrl,
+      });
+
+      setUser(updatedUser);
+      Alert.alert('Success', 'Profile picture updated!');
+    } catch (error: any) {
+      console.error('❌ Image pick error:', error);
+      Alert.alert('Error', error.message || 'Failed to upload profile picture');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
   const handleLogout = () => {
     Alert.alert('Logout', 'Are you sure you want to logout?', [
       { text: 'Cancel', style: 'cancel' },
@@ -139,7 +184,6 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
         onPress: async () => {
           try {
             await authService.logout();
-            // Just set user to null - RootNavigator will handle switching to Auth stack
             setUser(null);
             console.log('✅ Logged out successfully');
           } catch (error: any) {
@@ -162,11 +206,33 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Profile Header */}
       <View style={styles.header}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{user.username?.charAt(0).toUpperCase()}</Text>
-        </View>
+        <TouchableOpacity
+          onPress={handlePickImage}
+          disabled={uploadingImage}
+          style={styles.avatarContainer}
+        >
+          {user.avatar_url ? (
+            <Image
+              source={{ uri: user.avatar_url }}
+              style={styles.avatar}
+            />
+          ) : (
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>{user.username?.charAt(0).toUpperCase() || '?'}</Text>
+            </View>
+          )}
+          {uploadingImage ? (
+            <View style={styles.uploadOverlay}>
+              <ActivityIndicator color={colors.primary} />
+            </View>
+          ) : (
+            <View style={styles.uploadBadge}>
+              <Text style={styles.uploadBadgeText}>📷</Text>
+            </View>
+          )}
+        </TouchableOpacity>
         <View style={styles.headerInfo}>
-          <Text style={styles.headerUsername}>{user.username}</Text>
+          <Text style={styles.headerUsername}>{user.username || 'User'}</Text>
           <Text style={styles.headerEmail}>{user.email}</Text>
           <Text style={styles.memberSince}>
             Member since {new Date(user.created_at).toLocaleDateString()}
@@ -202,7 +268,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
         ) : (
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Username</Text>
-            <Text style={styles.infoValue}>{user.username}</Text>
+            <Text style={styles.infoValue}>{user.username || 'Not set'}</Text>
           </View>
         )}
       </View>
@@ -263,8 +329,8 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
         <View style={styles.settingRow}>
           <Text style={styles.settingLabel}>Dark Theme</Text>
           <Switch
-            value={true}
-            disabled={true}
+            value={darkMode}
+            onValueChange={setDarkMode}
             trackColor={{ false: colors.border, true: colors.primary }}
           />
         </View>
@@ -302,6 +368,10 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
     marginBottom: spacing.lg,
   },
+  avatarContainer: {
+    position: 'relative',
+    marginBottom: spacing.md,
+  },
   avatar: {
     width: 100,
     height: 100,
@@ -309,12 +379,38 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: spacing.md,
   },
   avatarText: {
     color: colors.background,
     fontSize: 40,
     fontWeight: '700',
+  },
+  uploadOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: borderRadius.full,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  uploadBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 36,
+    height: 36,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: colors.background,
+  },
+  uploadBadgeText: {
+    fontSize: 18,
   },
   headerInfo: {
     alignItems: 'center',
