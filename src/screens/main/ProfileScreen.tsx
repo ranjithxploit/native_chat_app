@@ -139,8 +139,9 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
         onPress: async () => {
           try {
             await authService.logout();
-            useAuthStore.getState().setUser(null);
-            navigation.replace('Login');
+            // Just set user to null - RootNavigator will handle switching to Auth stack
+            setUser(null);
+            console.log('✅ Logged out successfully');
           } catch (error: any) {
             Alert.alert('Error', error.message || 'Failed to logout');
           }

@@ -310,8 +310,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   searchContainer: {
-    padding: spacing.md,
-    backgroundColor: colors.surface,
+    padding: spacing.lg,
+    paddingTop: spacing.xl,
+    backgroundColor: colors.background,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },

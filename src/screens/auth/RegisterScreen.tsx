@@ -85,13 +85,22 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
     try {
       const result = await authService.register(email, password, username);
 
-      if (result.session) {
-        setSession(result.session);
-        setUser(result.user);
+      if (!result.user) {
+        throw new Error('Registration failed: No user returned');
       }
 
+      // Set session first
+      if (result.session) {
+        setSession(result.session);
+      }
+
+      // Set the user object (it's returned from the register function)
+      setUser(result.user);
+      
+      console.log('✅ Registration successful, user created:', result.user.email);
       Alert.alert('Success', 'Account created! Logging you in...');
     } catch (error: any) {
+      console.error('❌ Registration error:', error);
       Alert.alert('Registration Error', error.message || 'Failed to register. Please try again.');
     } finally {
       setLoading(false);

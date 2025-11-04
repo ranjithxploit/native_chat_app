@@ -141,6 +141,15 @@ export const RootNavigator: React.FC = () => {
     initializeApp();
   }, []);
 
+  useEffect(() => {
+    // Watch for user state changes
+    if (user) {
+      console.log('👤 User logged in:', user.email);
+    } else {
+      console.log('👤 User logged out or not set');
+    }
+  }, [user]);
+
   const initializeApp = async () => {
     try {
       // Schedule image cleanup
