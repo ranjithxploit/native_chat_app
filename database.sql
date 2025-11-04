@@ -101,6 +101,11 @@ CREATE POLICY "Users can view all profiles"
   FOR SELECT
   USING (true);
 
+CREATE POLICY "Users can create their own profile"
+  ON users
+  FOR INSERT
+  WITH CHECK (auth.uid() = id);
+
 CREATE POLICY "Users can update their own profile"
   ON users
   FOR UPDATE

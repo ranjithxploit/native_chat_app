@@ -4,7 +4,7 @@
  */
 
 import { supabase } from './supabase';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 
 // Helper to convert base64 to Uint8Array
 const base64ToUint8Array = (base64: string): Uint8Array => {
@@ -24,7 +24,7 @@ export const imageService = {
     try {
       // Read image file
       const base64 = await FileSystem.readAsStringAsync(imageUri, {
-        encoding: 'base64' as any,
+        encoding: FileSystem.EncodingType.Base64,
       });
 
       // Generate profile pic key
@@ -63,7 +63,7 @@ export const imageService = {
     try {
       // Read image file
       const base64 = await FileSystem.readAsStringAsync(imageUri, {
-        encoding: 'base64' as any,
+        encoding: FileSystem.EncodingType.Base64,
       });
 
       // Generate unique key
