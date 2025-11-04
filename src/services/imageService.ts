@@ -18,6 +18,42 @@ const base64ToUint8Array = (base64: string): Uint8Array => {
 
 export const imageService = {
   /**
+   * Upload profile picture to Supabase Storage
+   */
+  async uploadProfilePicture(userId: string, imageUri: string): Promise<string> {
+    try {
+      // Read image file
+      const base64 = await FileSystem.readAsStringAsync(imageUri, {
+        encoding: 'base64' as any,
+      });
+
+      // Generate profile pic key
+      const profileKey = `profile-pictures/${userId}/avatar`;
+
+      // Upload to storage (overwrite existing)
+      const { data, error } = await supabase.storage
+        .from('chat-images')
+        .upload(profileKey, base64ToUint8Array(base64), {
+          contentType: 'image/jpeg',
+          upsert: true, // Overwrite if exists
+        });
+
+      if (error) throw error;
+
+      // Get public URL
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from('chat-images').getPublicUrl(profileKey);
+
+      console.log('✅ Profile picture uploaded:', publicUrl);
+      return publicUrl;
+    } catch (error) {
+      console.error('❌ Upload profile picture error:', error);
+      throw error;
+    }
+  },
+
+  /**
    * Upload image to Supabase Storage
    */
   async uploadImage(userId: string, imageUri: string): Promise<{
@@ -27,7 +63,7 @@ export const imageService = {
     try {
       // Read image file
       const base64 = await FileSystem.readAsStringAsync(imageUri, {
-        encoding: FileSystem.EncodingType.Base64,
+        encoding: 'base64' as any,
       });
 
       // Generate unique key
