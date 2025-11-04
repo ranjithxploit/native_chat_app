@@ -12,6 +12,11 @@ export const friendService = {
    */
   async sendFriendRequest(senderId: string, receiverId: string) {
     try {
+      // Prevent self friend requests
+      if (senderId === receiverId) {
+        throw new Error('You cannot send a friend request to yourself');
+      }
+
       // Check if already friends
       const { data: existingFriendship } = await supabase
         .from('friendships')
@@ -53,9 +58,10 @@ export const friendService = {
 
       if (error) throw error;
 
+      console.log('✅ Friend request sent successfully');
       return data;
     } catch (error) {
-      console.error('Send friend request error:', error);
+      console.error('❌ Send friend request error:', error);
       throw error;
     }
   },

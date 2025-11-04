@@ -1,0 +1,68 @@
+# Storage RLS Quick Fix - Visual Guide
+
+## The Issue
+You cannot modify Supabase's `storage.objects` table via SQL. Supabase manages it.
+
+## The Solution - Use Dashboard UI
+
+### 5-Minute Fix:
+
+1. **Open Supabase** → Your Project
+2. **Click Storage** (left sidebar)
+3. **Find "chat-images" bucket**
+4. **Click ⋮ (three dots)** → **Edit policies**
+
+### Add These 3 Policies:
+
+| # | Name | Operation | Roles | Condition |
+|---|------|-----------|-------|-----------|
+| 1 | Allow Uploads | INSERT | authenticated | `bucket_id = 'chat-images'` |
+| 2 | Allow Views | SELECT | public | `bucket_id = 'chat-images'` |
+| 3 | Allow Delete | DELETE | authenticated | `bucket_id = 'chat-images'` |
+
+For each:
+- Click **New policy**
+- Fill in the rows
+- Click **Create policy**
+
+### Test:
+1. Restart app
+2. Profile → Tap avatar 📷
+3. Select image
+4. Should work! ✅
+
+---
+
+## Still Not Working?
+
+Try the **permissive policy** first (to confirm it's RLS):
+
+**Condition:** `true`
+
+This allows everyone. If uploads work now, RLS was blocking. Then make policies more restrictive.
+
+---
+
+## If Using Custom Table:
+
+```sql
+CREATE TABLE user_files (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES auth.users(id),
+  filename TEXT,
+  file_path TEXT,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+ALTER TABLE user_files DISABLE ROW LEVEL SECURITY;
+```
+
+Then modify your app code to reference this table.
+
+---
+
+## Need Help?
+
+- Message Supabase support with your project ID
+- Include error: "StorageApiError: new row violates row-level security policy"
+- Include steps you tried
