@@ -52,6 +52,30 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
     }
   }, [user]);
 
+  // Periodically refresh user data to ensure profile info stays current
+  React.useEffect(() => {
+    if (!user) return;
+
+    const refreshInterval = setInterval(async () => {
+      try {
+        const { authService } = await import('../../services/authService');
+        const freshUser = await authService.getCurrentUser();
+        if (freshUser && (
+          freshUser.username !== user.username || 
+          freshUser.avatar_url !== user.avatar_url ||
+          freshUser.bio !== user.bio
+        )) {
+          setUser(freshUser);
+          console.log('🔄 User profile refreshed');
+        }
+      } catch (error) {
+        console.error('Profile refresh error:', error);
+      }
+    }, 30000); // Refresh every 30 seconds
+
+    return () => clearInterval(refreshInterval);
+  }, [user, setUser]);
+
   const validatePasswordChange = (): boolean => {
     const newErrors = {
       username: '',
