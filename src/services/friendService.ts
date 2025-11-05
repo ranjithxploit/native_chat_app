@@ -1,23 +1,12 @@
-/**
- * Friend Service
- * Handles friend requests, adding/removing friends, and friend management
- */
-
 import { supabase } from './supabase';
 import { FriendRequest, Friendship, User } from '../types/database';
-
 export const friendService = {
-  /**
-   * Send a friend request
-   */
+
   async sendFriendRequest(senderId: string, receiverId: string) {
     try {
-      // Prevent self friend requests
       if (senderId === receiverId) {
         throw new Error('You cannot send a friend request to yourself');
       }
-
-      // Check if already friends
       const { data: existingFriendship } = await supabase
         .from('friendships')
         .select('id')
@@ -29,8 +18,6 @@ export const friendService = {
       if (existingFriendship) {
         throw new Error('Already friends with this user');
       }
-
-      // Check if request already exists
       const { data: existingRequest } = await supabase
         .from('friend_requests')
         .select('id')
@@ -58,28 +45,22 @@ export const friendService = {
 
       if (error) throw error;
 
-      console.log('✅ Friend request sent successfully');
+      console.log('Friend request sent successfully');
       return data;
     } catch (error) {
-      console.error('❌ Send friend request error:', error);
+      console.error('Send friend request error:', error);
       throw error;
     }
   },
 
-  /**
-   * Accept a friend request
-   */
   async acceptFriendRequest(requestId: string, senderId: string, receiverId: string) {
     try {
-      // Update request status
       const { error: updateError } = await supabase
         .from('friend_requests')
         .update({ status: 'accepted' })
         .eq('id', requestId);
 
       if (updateError) throw updateError;
-
-      // Create friendship (bidirectional)
       const { error: friendshipError } = await supabase
         .from('friendships')
         .insert([
@@ -104,9 +85,6 @@ export const friendService = {
     }
   },
 
-  /**
-   * Reject a friend request
-   */
   async rejectFriendRequest(requestId: string) {
     try {
       const { error } = await supabase
@@ -122,10 +100,6 @@ export const friendService = {
       throw error;
     }
   },
-
-  /**
-   * Get pending friend requests for user
-   */
   async getPendingRequests(userId: string): Promise<FriendRequest[]> {
     try {
       const { data, error } = await supabase
@@ -147,9 +121,6 @@ export const friendService = {
     }
   },
 
-  /**
-   * Get friends list for user
-   */
   async getFriends(userId: string): Promise<User[]> {
     try {
       const { data, error } = await supabase
@@ -169,12 +140,8 @@ export const friendService = {
     }
   },
 
-  /**
-   * Remove a friend
-   */
   async removeFriend(userId: string, friendId: string) {
     try {
-      // Remove both directions
       const { error } = await supabase
         .from('friendships')
         .delete()
@@ -191,9 +158,6 @@ export const friendService = {
     }
   },
 
-  /**
-   * Check if users are friends
-   */
   async areFriends(userId: string, friendId: string): Promise<boolean> {
     try {
       const { data, error } = await supabase
@@ -212,9 +176,6 @@ export const friendService = {
     }
   },
 
-  /**
-   * Check friend request status
-   */
   async checkFriendRequestStatus(
     senderId: string,
     receiverId: string

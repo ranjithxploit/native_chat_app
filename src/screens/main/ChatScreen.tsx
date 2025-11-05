@@ -23,6 +23,7 @@ import { colors, spacing, typography, borderRadius } from '../../theme/theme';
 import { Button } from '../../components/Button';
 import { messageService } from '../../services/messageService';
 import { imageService } from '../../services/imageService';
+import { callService } from '../../services/callService';
 import { useAuthStore, useFriendStore, useMessageStore, useOnlineStore } from '../../store/useStore';
 
 type Props = NativeStackScreenProps<any, 'Chat'>;
@@ -31,6 +32,7 @@ export const ChatScreen: React.FC<Props> = ({ navigation, route }) => {
   const [messageText, setMessageText] = useState('');
   const [loadingMessages, setLoadingMessages] = useState(true);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [lastActive, setLastActive] = useState<string | null>(null);
   const flatListRef = useRef<FlatList>(null);
 
   const user = useAuthStore((state) => state.user);
@@ -45,8 +47,23 @@ export const ChatScreen: React.FC<Props> = ({ navigation, route }) => {
 
   useEffect(() => {
     loadMessages();
+    loadLastActive();
     subscribeToMessages();
   }, [selectedFriend]);
+
+  // Listen for incoming calls
+  useEffect(() => {
+    if (!user) return;
+
+    const subscription = callService.subscribeToIncomingCalls(user.id, (incomingCall) => {
+      // Auto-navigate to call screen when receiving a call
+      navigation.navigate('Call', { call: incomingCall });
+    });
+
+    return () => {
+      subscription?.unsubscribe();
+    };
+  }, [user?.id, navigation]);
 
   const loadMessages = async () => {
     if (!user || !selectedFriend) return;
@@ -63,6 +80,37 @@ export const ChatScreen: React.FC<Props> = ({ navigation, route }) => {
       console.error('Load messages error:', error);
     } finally {
       setLoadingMessages(false);
+    }
+  };
+
+  const loadLastActive = async () => {
+    if (!selectedFriend) return;
+
+    try {
+      const { data, error } = await require('../../services/supabase').supabase
+        .from('online_status')
+        .select('last_seen')
+        .eq('user_id', selectedFriend.id)
+        .single();
+
+      if (!error && data) {
+        const lastSeenDate = new Date(data.last_seen);
+        const now = new Date();
+        const diffMinutes = Math.floor((now.getTime() - lastSeenDate.getTime()) / 60000);
+        
+        if (diffMinutes < 1) {
+          setLastActive('just now');
+        } else if (diffMinutes < 60) {
+          setLastActive(`${diffMinutes}m ago`);
+        } else if (diffMinutes < 1440) {
+          const hours = Math.floor(diffMinutes / 60);
+          setLastActive(`${hours}h ago`);
+        } else {
+          setLastActive(lastSeenDate.toLocaleDateString());
+        }
+      }
+    } catch (error) {
+      console.error('Load last active error:', error);
     }
   };
 
@@ -102,6 +150,23 @@ export const ChatScreen: React.FC<Props> = ({ navigation, route }) => {
     } catch (error) {
       Alert.alert('Error', 'Failed to send message');
       console.error('Send message error:', error);
+    }
+  };
+
+  const handleStartCall = async () => {
+    if (!user || !selectedFriend) return;
+
+    try {
+      const call = await callService.initiateCall(
+        user.id,
+        user.username || 'User',
+        selectedFriend.id
+      );
+      
+      // Navigate to call screen
+      navigation.navigate('Call', { call });
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to start call');
     }
   };
 
@@ -233,9 +298,15 @@ export const ChatScreen: React.FC<Props> = ({ navigation, route }) => {
         <View style={styles.headerInfo}>
           <Text style={styles.friendName}>{selectedFriend.username}</Text>
           <Text style={styles.onlineStatus}>
-            {isOnline(selectedFriend.id) ? '🟢 Online' : '⚫ Offline'}
+            {isOnline(selectedFriend.id) ? '🟢 Online' : lastActive ? `Last active ${lastActive}` : '⚫ Offline'}
           </Text>
         </View>
+        <TouchableOpacity 
+          onPress={handleStartCall}
+          style={styles.callButton}
+        >
+          <Text style={styles.callButtonText}>📞</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Messages List */}
@@ -259,7 +330,7 @@ export const ChatScreen: React.FC<Props> = ({ navigation, route }) => {
           disabled={uploadingImage}
           style={styles.attachButton}
         >
-          <Text style={styles.attachButtonText}>📎</Text>
+          <Text style={styles.attachButtonText}>�️</Text>
         </TouchableOpacity>
 
         <TextInput
@@ -269,7 +340,6 @@ export const ChatScreen: React.FC<Props> = ({ navigation, route }) => {
           value={messageText}
           onChangeText={setMessageText}
           multiline
-          maxHeight={100}
           editable={!uploadingImage}
         />
 
@@ -284,7 +354,7 @@ export const ChatScreen: React.FC<Props> = ({ navigation, route }) => {
           {uploadingImage ? (
             <ActivityIndicator color={colors.background} size="small" />
           ) : (
-            <Text style={styles.sendButtonText}>✉️</Text>
+            <Text style={styles.sendButtonText}>➤</Text>
           )}
         </TouchableOpacity>
       </View>
@@ -333,6 +403,18 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.textTertiary,
     marginTop: spacing.xs,
+  },
+  callButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.primary,
+  },
+  callButtonText: {
+    fontSize: 20,
+    fontWeight: '600',
   },
   messagesList: {
     paddingHorizontal: spacing.md,

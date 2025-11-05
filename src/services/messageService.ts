@@ -174,12 +174,19 @@ export const messageService = {
     callback: (message: Message) => void
   ) {
     const subscription = supabase
-      .from(`messages:or(and(sender_id.eq.${userId},receiver_id.eq.${friendId}),and(sender_id.eq.${friendId},receiver_id.eq.${userId}))`)
-      .on('*', (payload: any) => {
-        if (payload.eventType === 'INSERT') {
+      .channel(`conversation:${userId}:${friendId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+          filter: `or(and(sender_id.eq.${userId},receiver_id.eq.${friendId}),and(sender_id.eq.${friendId},receiver_id.eq.${userId}))`,
+        },
+        (payload: any) => {
           callback(payload.new as Message);
         }
-      })
+      )
       .subscribe();
 
     return subscription;
@@ -188,12 +195,21 @@ export const messageService = {
 
   subscribeToUserMessages(userId: string, callback: (message: Message) => void) {
     const subscription = supabase
-      .from(`messages:or(sender_id.eq.${userId},receiver_id.eq.${userId})`)
-      .on('*', (payload: any) => {
-        if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-          callback(payload.new as Message);
+      .channel(`user-messages:${userId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'messages',
+          filter: `or(sender_id.eq.${userId},receiver_id.eq.${userId})`,
+        },
+        (payload: any) => {
+          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+            callback(payload.new as Message);
+          }
         }
-      })
+      )
       .subscribe();
 
     return subscription;

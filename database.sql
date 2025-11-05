@@ -76,6 +76,18 @@ CREATE TABLE notifications (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Create calls table
+CREATE TABLE calls (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  caller_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  caller_name TEXT NOT NULL,
+  receiver_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  status TEXT DEFAULT 'ringing' CHECK (status IN ('ringing', 'active', 'ended')),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  started_at TIMESTAMP WITH TIME ZONE,
+  ended_at TIMESTAMP WITH TIME ZONE
+);
+
 -- Create indexes for performance
 CREATE INDEX idx_friend_requests_receiver ON friend_requests(receiver_id);
 CREATE INDEX idx_friend_requests_sender ON friend_requests(sender_id);
@@ -86,6 +98,9 @@ CREATE INDEX idx_messages_receiver ON messages(receiver_id);
 CREATE INDEX idx_messages_conversation ON messages(sender_id, receiver_id, created_at);
 CREATE INDEX idx_notifications_user ON notifications(user_id);
 CREATE INDEX idx_online_status_user ON online_status(user_id);
+CREATE INDEX idx_calls_receiver ON calls(receiver_id);
+CREATE INDEX idx_calls_caller ON calls(caller_id);
+CREATE INDEX idx_calls_status ON calls(status);
 
 -- Enable Row Level Security (RLS)
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
@@ -94,6 +109,7 @@ ALTER TABLE friendships ENABLE ROW LEVEL SECURITY;
 ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE online_status ENABLE ROW LEVEL SECURITY;
 ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE calls ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies for users
 CREATE POLICY "Users can view all profiles"
@@ -135,7 +151,7 @@ CREATE POLICY "Users can view their friends"
 CREATE POLICY "Users can add friendships"
   ON friendships
   FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
+  WITH CHECK (auth.uid() = user_id OR auth.uid() = friend_id);
 
 -- RLS Policies for messages
 CREATE POLICY "Users can view their messages"
@@ -170,11 +186,28 @@ CREATE POLICY "Users can view their notifications"
   FOR SELECT
   USING (auth.uid() = user_id);
 
+-- RLS Policies for calls
+CREATE POLICY "Users can view their calls"
+  ON calls
+  FOR SELECT
+  USING (auth.uid() = caller_id OR auth.uid() = receiver_id);
+
+CREATE POLICY "Users can initiate calls"
+  ON calls
+  FOR INSERT
+  WITH CHECK (auth.uid() = caller_id);
+
+CREATE POLICY "Users can update their calls"
+  ON calls
+  FOR UPDATE
+  USING (auth.uid() = caller_id OR auth.uid() = receiver_id);
+
 -- Enable real-time for messages
 ALTER PUBLICATION supabase_realtime ADD TABLE messages;
 ALTER PUBLICATION supabase_realtime ADD TABLE friend_requests;
 ALTER PUBLICATION supabase_realtime ADD TABLE online_status;
 ALTER PUBLICATION supabase_realtime ADD TABLE notifications;
+ALTER PUBLICATION supabase_realtime ADD TABLE calls;
 
 -- Create function to update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()

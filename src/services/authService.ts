@@ -6,6 +6,17 @@
 import { supabase } from './supabase';
 import { User } from '../types/database';
 
+/**
+ * Helper: Fix avatar URL typo (supaabase -> supabase)
+ */
+const fixAvatarUrl = (user: User | null): User | null => {
+  if (!user || !user.avatar_url) return user;
+  return {
+    ...user,
+    avatar_url: user.avatar_url.replace('supaabase', 'supabase'),
+  };
+};
+
 export const authService = {
   /**
    * Register a new user
@@ -117,10 +128,10 @@ export const authService = {
         }
 
         console.log('✅ User profile created:', newUser.email);
-        return newUser;
+        return fixAvatarUrl(newUser);
       }
 
-      return userData;
+      return fixAvatarUrl(userData);
     } catch (error) {
       console.error('❌ Get current user error:', error);
       return null;
@@ -190,7 +201,7 @@ export const authService = {
       }
 
       console.log('✅ Profile updated successfully');
-      return data;
+      return fixAvatarUrl(data);
     } catch (error) {
       console.error('❌ Update profile error:', error);
       throw error;
@@ -228,7 +239,7 @@ export const authService = {
 
       if (error) return null;
 
-      return data;
+      return fixAvatarUrl(data);
     } catch (error) {
       console.error('Get user by ID error:', error);
       return null;
@@ -248,7 +259,7 @@ export const authService = {
 
       if (error) throw error;
 
-      return data || [];
+      return (data || []).map(user => fixAvatarUrl(user)).filter(Boolean) as User[];
     } catch (error) {
       console.error('Search users error:', error);
       return [];

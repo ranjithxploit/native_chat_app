@@ -15,6 +15,7 @@ import {
   ActivityIndicator,
   RefreshControl,
   TextInput,
+  Modal,
 } from 'react-native';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { colors, spacing, typography, borderRadius, shadows } from '../../theme/theme';
@@ -32,6 +33,9 @@ export const FriendsListScreen: React.FC<FriendsListScreenProps> = ({ navigation
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [profileModalVisible, setProfileModalVisible] = useState(false);
+  const [selectedProfileUser, setSelectedProfileUser] = useState<any>(null);
+  const [profileLastActive, setProfileLastActive] = useState<string | null>(null);
 
   const user = useAuthStore((state) => state.user);
   const friends = useFriendStore((state) => state.friends);
@@ -42,6 +46,7 @@ export const FriendsListScreen: React.FC<FriendsListScreenProps> = ({ navigation
   const setFriendRequests = useFriendStore((state) => state.setFriendRequests);
   const setSelectedFriend = useFriendStore((state) => state.setSelectedFriend);
   const setLoading = useFriendStore((state) => state.setLoading);
+  const removeFriendFromStore = useFriendStore((state) => state.removeFriend);
   const removeFriendRequest = useFriendStore((state) => state.removeFriendRequest);
 
   useEffect(() => {
@@ -127,6 +132,41 @@ export const FriendsListScreen: React.FC<FriendsListScreenProps> = ({ navigation
     navigation.navigate('Chat');
   };
 
+  const handleViewProfile = async (friend: any) => {
+    setSelectedProfileUser(friend);
+    
+    // Load last active status
+    try {
+      const { data, error } = await require('../../services/supabase').supabase
+        .from('online_status')
+        .select('last_seen')
+        .eq('user_id', friend.id)
+        .single();
+
+      if (!error && data) {
+        const lastSeenDate = new Date(data.last_seen);
+        const now = new Date();
+        const diffMinutes = Math.floor((now.getTime() - lastSeenDate.getTime()) / 60000);
+        
+        if (diffMinutes < 1) {
+          setProfileLastActive('just now');
+        } else if (diffMinutes < 60) {
+          setProfileLastActive(`${diffMinutes}m ago`);
+        } else if (diffMinutes < 1440) {
+          const hours = Math.floor(diffMinutes / 60);
+          setProfileLastActive(`${hours}h ago`);
+        } else {
+          setProfileLastActive(lastSeenDate.toLocaleDateString());
+        }
+      }
+    } catch (err) {
+      console.error('Load profile last active error:', err);
+      setProfileLastActive(null);
+    }
+
+    setProfileModalVisible(true);
+  };
+
   const handleRemoveFriend = async (friendId: string) => {
     if (!user) return;
 
@@ -138,6 +178,8 @@ export const FriendsListScreen: React.FC<FriendsListScreenProps> = ({ navigation
         onPress: async () => {
           try {
             await friendService.removeFriend(user.id, friendId);
+            removeFriendFromStore(friendId);
+            setProfileModalVisible(false);
             loadFriendsAndRequests();
           } catch (error: any) {
             Alert.alert('Error', error.message || 'Failed to remove friend');
@@ -154,8 +196,12 @@ export const FriendsListScreen: React.FC<FriendsListScreenProps> = ({ navigation
     >
       {item.avatar_url && item.avatar_url.trim().length > 0 ? (
         <Image
-          source={{ uri: item.avatar_url + '?t=' + new Date().getTime() }}
+          key={item.id}
+          source={{ uri: item.avatar_url }}
           style={styles.friendAvatarImage}
+          onError={(e) => {
+            console.warn('⚠️  Friend avatar load error:', e.nativeEvent.error);
+          }}
         />
       ) : (
         <View style={styles.friendAvatar}>
@@ -166,12 +212,12 @@ export const FriendsListScreen: React.FC<FriendsListScreenProps> = ({ navigation
         <Text style={styles.friendName}>{item.username}</Text>
         <Text style={styles.friendEmail}>{item.email}</Text>
       </View>
-      <TouchableOpacity
-        onPress={() => handleRemoveFriend(item.id)}
-        style={styles.removeButton}
-      >
-        <Text style={styles.removeButtonText}>✕</Text>
-      </TouchableOpacity>
+      <Button
+        label="View Profile"
+        onPress={() => handleViewProfile(item)}
+        variant="primary"
+        size="sm"
+      />
     </TouchableOpacity>
   );
 
@@ -180,8 +226,12 @@ export const FriendsListScreen: React.FC<FriendsListScreenProps> = ({ navigation
       <View style={styles.requestInfo}>
         {item.sender?.avatar_url && item.sender.avatar_url.trim().length > 0 ? (
           <Image
-            source={{ uri: item.sender.avatar_url + '?t=' + new Date().getTime() }}
+            key={item.sender?.id}
+            source={{ uri: item.sender.avatar_url }}
             style={styles.friendAvatarImage}
+            onError={(e) => {
+              console.warn('⚠️  Sender avatar load error:', e.nativeEvent.error);
+            }}
           />
         ) : (
           <View style={styles.friendAvatar}>
@@ -216,8 +266,12 @@ export const FriendsListScreen: React.FC<FriendsListScreenProps> = ({ navigation
     <TouchableOpacity style={styles.searchResultItem}>
       {item.avatar_url && item.avatar_url.trim().length > 0 ? (
         <Image
-          source={{ uri: item.avatar_url + '?t=' + new Date().getTime() }}
+          key={item.id}
+          source={{ uri: item.avatar_url }}
           style={styles.friendAvatarImage}
+          onError={(e) => {
+            console.warn('⚠️  Search result avatar load error:', e.nativeEvent.error);
+          }}
         />
       ) : (
         <View style={styles.friendAvatar}>
@@ -320,6 +374,70 @@ export const FriendsListScreen: React.FC<FriendsListScreenProps> = ({ navigation
           )}
         </>
       )}
+
+      {/* Friend Profile Modal */}
+      <Modal
+        visible={profileModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setProfileModalVisible(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            {/* Close Button */}
+            <TouchableOpacity
+              style={styles.modalCloseButton}
+              onPress={() => setProfileModalVisible(false)}
+            >
+              <Text style={styles.modalCloseText}>✕</Text>
+            </TouchableOpacity>
+
+            {/* Profile Avatar */}
+            {selectedProfileUser?.avatar_url && selectedProfileUser.avatar_url.trim().length > 0 ? (
+              <Image
+                source={{ uri: selectedProfileUser.avatar_url }}
+                style={styles.profileModalAvatar}
+              />
+            ) : (
+              <View style={styles.profileModalAvatarPlaceholder}>
+                <Text style={styles.profileModalAvatarText}>
+                  {selectedProfileUser?.username?.charAt(0).toUpperCase()}
+                </Text>
+              </View>
+            )}
+
+            {/* Profile Info */}
+            <Text style={styles.profileModalUsername}>{selectedProfileUser?.username}</Text>
+            
+            <View style={styles.profileModalInfoContainer}>
+              <View style={styles.profileModalInfoItem}>
+                <Text style={styles.profileModalInfoLabel}>Joined</Text>
+                <Text style={styles.profileModalInfoValue}>
+                  {selectedProfileUser?.created_at
+                    ? new Date(selectedProfileUser.created_at).toLocaleDateString()
+                    : 'N/A'}
+                </Text>
+              </View>
+              
+              <View style={styles.profileModalInfoItem}>
+                <Text style={styles.profileModalInfoLabel}>Last Active</Text>
+                <Text style={styles.profileModalInfoValue}>
+                  {profileLastActive || 'N/A'}
+                </Text>
+              </View>
+            </View>
+
+            {/* Remove Friend Button */}
+            <Button
+              label="Remove Friend"
+              onPress={() => handleRemoveFriend(selectedProfileUser?.id)}
+              variant="outline"
+              size="md"
+              style={styles.profileModalRemoveButton}
+            />
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -480,5 +598,83 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.textSecondary,
     textAlign: 'center',
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: borderRadius.xl,
+    borderTopRightRadius: borderRadius.xl,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.lg,
+    paddingBottom: spacing.xl,
+  },
+  modalCloseButton: {
+    width: 36,
+    height: 36,
+    borderRadius: borderRadius.full,
+    justifyContent: 'center',
+    alignItems: 'center',
+    alignSelf: 'flex-end',
+    marginBottom: spacing.md,
+  },
+  modalCloseText: {
+    fontSize: 24,
+    color: colors.text,
+  },
+  profileModalAvatar: {
+    width: 120,
+    height: 120,
+    borderRadius: borderRadius.full,
+    alignSelf: 'center',
+    marginBottom: spacing.lg,
+  },
+  profileModalAvatarPlaceholder: {
+    width: 120,
+    height: 120,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    alignSelf: 'center',
+    marginBottom: spacing.lg,
+  },
+  profileModalAvatarText: {
+    fontSize: 48,
+    fontWeight: '700',
+    color: colors.background,
+  },
+  profileModalUsername: {
+    ...typography.h2,
+    textAlign: 'center',
+    color: colors.text,
+    marginBottom: spacing.lg,
+  },
+  profileModalInfoContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    backgroundColor: colors.surface2,
+    borderRadius: borderRadius.lg,
+    paddingVertical: spacing.lg,
+    marginBottom: spacing.lg,
+  },
+  profileModalInfoItem: {
+    alignItems: 'center',
+  },
+  profileModalInfoLabel: {
+    ...typography.caption,
+    color: colors.textTertiary,
+    marginBottom: spacing.xs,
+  },
+  profileModalInfoValue: {
+    ...typography.body,
+    color: colors.text,
+    fontWeight: '600',
+  },
+  profileModalRemoveButton: {
+    marginTop: spacing.md,
   },
 });

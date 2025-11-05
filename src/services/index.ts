@@ -9,9 +9,10 @@ export { friendService } from './friendService';
 export { messageService } from './messageService';
 export { imageService, scheduleImageCleanup } from './imageService';
 export { aiService, AI_CONFIG, aiUsageTracker } from './aiService';
+export { notificationService } from './notificationService';
+export { callService } from './callService';
 export { supabase } from './supabase';
 
-// Re-exports for convenience
 export type {
   User,
   FriendRequest,

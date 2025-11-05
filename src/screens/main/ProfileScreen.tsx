@@ -35,7 +35,6 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
-  const [darkMode, setDarkMode] = useState(true);
   const [imageKey, setImageKey] = useState(0); // Force re-render of Image component
   const [errors, setErrors] = useState({
     username: '',
@@ -335,21 +334,8 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
         <Text style={styles.sectionTitle}>Settings</Text>
 
         <View style={styles.settingRow}>
-          <Text style={styles.settingLabel}>Push Notifications</Text>
-          <Switch
-            value={true}
-            disabled={true}
-            trackColor={{ false: colors.border, true: colors.primary }}
-          />
-        </View>
-
-        <View style={styles.settingRow}>
-          <Text style={styles.settingLabel}>Dark Theme</Text>
-          <Switch
-            value={darkMode}
-            onValueChange={setDarkMode}
-            trackColor={{ false: colors.border, true: colors.primary }}
-          />
+          <Text style={styles.settingLabel}>App Version</Text>
+          <Text style={styles.settingValue}>1.0.0</Text>
         </View>
       </View>
 
@@ -500,6 +486,11 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.text,
     fontWeight: '500',
+  },
+  settingValue: {
+    ...typography.body,
+    color: colors.textSecondary,
+    fontWeight: '400',
   },
   logoutButton: {
     marginTop: spacing.sm,

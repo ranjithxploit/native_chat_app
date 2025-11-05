@@ -17,11 +17,13 @@ import { ActivityIndicator, View, Text } from 'react-native';
 import { LoginScreen } from '../screens/auth/LoginScreen';
 import { RegisterScreen } from '../screens/auth/RegisterScreen';
 import { ChatScreen } from '../screens/main/ChatScreen';
+import { CallScreen } from '../screens/main/CallScreen';
 import { FriendsListScreen } from '../screens/main/FriendsListScreen';
 import { ProfileScreen } from '../screens/main/ProfileScreen';
 
 // Services & Store
 import { authService } from '../services/authService';
+import { supabase } from '../services/supabase';
 import { scheduleImageCleanup } from '../services/imageService';
 import { useAuthStore } from '../store/useStore';
 import { colors } from '../theme/theme';
@@ -39,6 +41,9 @@ type AuthStackParamList = {
 type HomeStackParamList = {
   Main: undefined;
   Chat: undefined;
+  Call: {
+    call?: any;
+  };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -54,7 +59,6 @@ const AuthNavigator: React.FC = () => {
     <AuthStack.Navigator
       screenOptions={{
         headerShown: false,
-        animationEnabled: true,
       }}
     >
       <AuthStack.Screen name="Login" component={LoginScreen} />
@@ -120,8 +124,12 @@ const HomeNavigator: React.FC = () => {
       <HomeStack.Screen
         name="Chat"
         component={ChatScreen}
+      />
+      <HomeStack.Screen
+        name="Call"
+        component={CallScreen}
         options={{
-          animationEnabled: true,
+          presentation: 'fullScreenModal',
         }}
       />
     </HomeStack.Navigator>
@@ -140,6 +148,32 @@ export const RootNavigator: React.FC = () => {
   useEffect(() => {
     initializeApp();
   }, []);
+
+  // Listen for session changes and refresh user data
+  useEffect(() => {
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      async (event: string, session: any) => {
+        console.log('🔐 Auth state changed:', event);
+        
+        if (session && event !== 'SIGNED_OUT') {
+          // Session exists, fetch fresh user data
+          const currentUser = await authService.getCurrentUser();
+          if (currentUser) {
+            setUser(currentUser);
+            console.log('✅ User data refreshed:', currentUser.email);
+          }
+        } else {
+          // Session ended, clear user
+          setUser(null);
+          console.log('👤 User logged out');
+        }
+      }
+    );
+
+    return () => {
+      authListener?.subscription?.unsubscribe();
+    };
+  }, [setUser]);
 
   useEffect(() => {
     // Watch for user state changes
