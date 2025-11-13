@@ -1,14 +1,5 @@
-/**
- * Authentication Service
- * Handles user registration, login, and session management
- */
-
 import { supabase } from './supabase';
 import { User } from '../types/database';
-
-/**
- * Helper: Fix avatar URL typo (supaabase -> supabase)
- */
 const fixAvatarUrl = (user: User | null): User | null => {
   if (!user || !user.avatar_url) return user;
   return {
@@ -18,12 +9,8 @@ const fixAvatarUrl = (user: User | null): User | null => {
 };
 
 export const authService = {
-  /**
-   * Register a new user
-   */
   async register(email: string, password: string, username: string) {
     try {
-      // Sign up user with Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
@@ -32,8 +19,6 @@ export const authService = {
       if (authError) throw authError;
 
       if (!authData.user) throw new Error('User creation failed');
-
-      // Create user profile in database
       const { data, error } = await supabase
         .from('users')
         .insert([
@@ -57,9 +42,6 @@ export const authService = {
     }
   },
 
-  /**
-   * Login user
-   */
   async login(email: string, password: string) {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -76,9 +58,6 @@ export const authService = {
     }
   },
 
-  /**
-   * Logout user
-   */
   async logout() {
     try {
       const { error } = await supabase.auth.signOut();
@@ -89,9 +68,6 @@ export const authService = {
     }
   },
 
-  /**
-   * Get current user
-   */
   async getCurrentUser(): Promise<User | null> {
     try {
       const { data: authData, error: authError } = await supabase.auth.getUser();
@@ -105,9 +81,8 @@ export const authService = {
         .single();
 
       if (userError) {
-        console.warn('⚠️  User profile not found in database, creating one...');
+        console.warn('User profile not found in database, creating one...');
         
-        // If user profile doesn't exist, create it
         const { data: newUser, error: createError } = await supabase
           .from('users')
           .insert([
@@ -123,29 +98,24 @@ export const authService = {
           .single();
 
         if (createError) {
-          console.error('❌ Failed to create user profile:', createError);
+          console.error('Failed to create user profile:', createError);
           return null;
         }
 
-        console.log('✅ User profile created:', newUser.email);
+        console.log('User profile created:', newUser.email);
         return fixAvatarUrl(newUser);
       }
 
       return fixAvatarUrl(userData);
     } catch (error) {
-      console.error('❌ Get current user error:', error);
+      console.error('Get current user error:', error);
       return null;
     }
   },
 
-  /**
-   * Update user profile
-   */
   async updateProfile(userId: string, updates: Partial<User>) {
     try {
-      console.log('📝 Updating profile for user:', userId);
-
-      // First, check if user exists
+      console.log('Updating profile for user:', userId);
       const { data: existingUser, error: checkError } = await supabase
         .from('users')
         .select('id')

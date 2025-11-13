@@ -1,20 +1,10 @@
-/**
- * Theme Configuration
- * Dark theme with light blue accents
- */
-
 export const colors = {
-  // Primary colors
   primary: '#00A8E8',
   primaryLight: '#00D4FF',
   primaryDark: '#0079B4',
-
-  // Secondary colors
   secondary: '#8B5CF6',
   secondaryLight: '#A78BFA',
   secondaryDark: '#6D28D9',
-
-  // Neutral colors
   background: '#0F1419',
   surface: '#1A1F2E',
   surface2: '#242B3D',
@@ -22,14 +12,10 @@ export const colors = {
   text: '#E8E9EB',
   textSecondary: '#A0AEC0',
   textTertiary: '#718096',
-
-  // Status colors
   success: '#10B981',
   warning: '#F59E0B',
   error: '#EF4444',
   info: '#3B82F6',
-
-  // Special
   overlay: 'rgba(15, 20, 25, 0.8)',
   transparent: 'transparent',
 };

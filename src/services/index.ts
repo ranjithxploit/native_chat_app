@@ -1,9 +1,4 @@
-/**
- * Index/Barrel Export File
- * Convenient imports for all app modules
- */
 
-// Services
 export { authService } from './authService';
 export { friendService } from './friendService';
 export { messageService } from './messageService';

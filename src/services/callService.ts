@@ -15,9 +15,6 @@ let audioRecorder: Audio.Recording | null = null;
 let soundPlayer: Audio.Sound | null = null;
 
 export const callService = {
-  /**
-   * Initialize audio permissions
-   */
   async initAudio() {
     try {
       await Audio.requestPermissionsAsync();

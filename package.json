@@ -1,7 +1,7 @@
 {
-  "name": "ai-chat-app",
+  "name": "ghostline",
   "version": "1.0.0",
-  "description": "AI-powered real-time chat application with React Native and Supabase",
+  "description": "Secure real-time chat application with React Native and Supabase",
   "main": "node_modules/expo/AppEntry.js",
   "scripts": {
     "start": "expo start",
@@ -17,10 +17,9 @@
     "@react-navigation/native": "^6.1.0",
     "@react-navigation/native-stack": "^6.9.0",
     "@supabase/supabase-js": "^2.38.0",
-    "@types/react": "~19.1.10",
     "axios": "^1.5.0",
     "date-fns": "^2.30.0",
-    "expo": "^54.0.0",
+    "expo": "^54.0.23",
     "expo-av": "^16.0.7",
     "expo-file-system": "~19.0.17",
     "expo-image-picker": "~17.0.8",
@@ -32,14 +31,13 @@
     "react-native-safe-area-context": "~5.6.0",
     "react-native-screens": "~4.16.0",
     "react-native-svg": "15.12.1",
-    "react-native-worklets": "^0.5.2",
+    "react-native-worklets": "0.5.1",
     "uuid": "^9.0.0",
     "zustand": "^4.4.0"
   },
   "devDependencies": {
     "@types/jest": "^29.5.0",
-    "@types/react": "~18.2.14",
-    "@types/react-native": "^0.72.0",
+    "@types/react": "~19.1.10",
     "eslint": "^8.48.0",
     "jest": "^29.6.0",
     "prettier": "^3.0.0",

@@ -376,7 +376,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
 
       {/* Version Info */}
       <View style={styles.footer}>
-        <Text style={styles.versionText}>AI Chat App v1.0.0</Text>
+        <Text style={styles.versionText}>GhostLine v1.0.0</Text>
       </View>
     </ScrollView>
   );

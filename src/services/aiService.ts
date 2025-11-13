@@ -1,37 +1,10 @@
-/**
- * AI Service Module
- * Ready for integration with OpenAI, Cohere, or other AI providers
- * Prepare for: Smart replies, message summarization, sentiment analysis, etc.
- */
-
-// Placeholder for AI integration
-// Update with your preferred AI provider
-
 export const aiService = {
-  /**
-   * Generate smart reply suggestions
-   * Example: User received a message, get 3 quick reply suggestions
-   */
+
   async generateSmartReplies(
     lastMessage: string,
     conversationHistory: string[] = []
   ): Promise<string[]> {
     try {
-      // TODO: Integrate with OpenAI API
-      // const response = await fetch('https://api.openai.com/v1/completions', {
-      //   method: 'POST',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //     'Authorization': `Bearer ${OPENAI_API_KEY}`,
-      //   },
-      //   body: JSON.stringify({
-      //     model: 'text-davinci-003',
-      //     prompt: `Given this message: "${lastMessage}", suggest 3 short reply options...`,
-      //     max_tokens: 100,
-      //   }),
-      // });
-
-      // Placeholder suggestions
       return ['That sounds great!', 'Thanks for letting me know', 'Absolutely! 👍'];
     } catch (error) {
       console.error('Generate smart replies error:', error);
@@ -39,19 +12,8 @@ export const aiService = {
     }
   },
 
-  /**
-   * Analyze message sentiment
-   * Returns: positive, negative, neutral
-   */
   async analyzeSentiment(message: string): Promise<'positive' | 'negative' | 'neutral'> {
     try {
-      // TODO: Integrate with sentiment analysis API
-      // const response = await fetch('...', {
-      //   method: 'POST',
-      //   body: JSON.stringify({ text: message }),
-      // });
-
-      // Placeholder logic
       if (message.includes('!')) return 'positive';
       if (message.includes(':(')) return 'negative';
       return 'neutral';
@@ -60,10 +22,6 @@ export const aiService = {
       return 'neutral';
     }
   },
-
-  /**
-   * Translate message to different language
-   */
   async translateMessage(
     message: string,
     targetLanguage: string

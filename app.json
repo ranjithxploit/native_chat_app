@@ -1,28 +1,47 @@
 {
   "expo": {
-    "name": "ai-chat-app",
-    "displayName": "AI Chat App",
-    "description": "AI-powered real-time chat application",
+    "name": "GhostLine",
+    "displayName": "GhostLine",
+    "description": "Secure real-time chat application",
     "version": "1.0.0",
-    "slug": "ai-chat-app",
+    "slug": "ghostline",
     "assetBundlePatterns": [
       "**/*"
     ],
+    "icon": "./src/assets/icon.png",
+    "splash": {
+      "image": "./src/assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.example.aichatapp"
+      "bundleIdentifier": "com.ghostline.app",
+      "splash": {
+        "image": "./src/assets/splash.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#ffffff"
+      }
     },
     "android": {
-      "package": "com.example.aichatapp",
+      "package": "com.ghostline.app",
       "permissions": [
         "READ_EXTERNAL_STORAGE",
         "WRITE_EXTERNAL_STORAGE",
         "CAMERA",
         "RECORD_AUDIO"
-      ]
+      ],
+      "adaptiveIcon": {
+        "foregroundImage": "./src/assets/icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "splash": {
+        "image": "./src/assets/splash.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#ffffff"
+      }
     },
-    "web": {
-    },
+    "web": {},
     "plugins": [
       [
         "expo-image-picker",
@@ -32,6 +51,11 @@
         }
       ]
     ],
-    "scheme": "aichatapp"
+    "scheme": "ghostline",
+    "extra": {
+      "eas": {
+        "projectId": "139447bd-e578-4bf6-a0d6-3ee898522817"
+      }
+    }
   }
 }
