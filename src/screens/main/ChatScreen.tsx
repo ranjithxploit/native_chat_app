@@ -14,9 +14,11 @@ import {
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as ImagePicker from 'expo-image-picker';
 import { colors, spacing, typography, borderRadius } from '../../theme/theme';
 import { Button } from '../../components/Button';
 import { messageService } from '../../services/messageService';
+import { cloudinaryService } from '../../services/cloudinaryService';
 import { useAuthStore, useFriendStore, useMessageStore, useOnlineStore } from '../../store/useStore';
 
 type Props = NativeStackScreenProps<any, 'Chat'>;
@@ -42,6 +44,7 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
   const [messageText, setMessageText] = useState('');
   const [loadingMessages, setLoadingMessages] = useState(true);
   const [lastActive, setLastActive] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const flatListRef = useRef<FlatList>(null);
 
   const user = useAuthStore((state) => state.user);
@@ -222,6 +225,46 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
     }
   };
 
+  const handlePickImage = async () => {
+    if (!user || !selectedFriend) return;
+    if (!ensureStillFriends()) return;
+
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        setUploadingImage(true);
+        try {
+          const { url, publicId } = await cloudinaryService.uploadImage(
+            user.id,
+            result.assets[0].uri
+          );
+
+          const message = await messageService.sendImageMessage(
+            user.id,
+            selectedFriend.id,
+            url,
+            publicId
+          );
+
+          addMessage(message);
+          flatListRef.current?.scrollToEnd({ animated: true });
+        } finally {
+          setUploadingImage(false);
+        }
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to send image');
+      console.error('Pick image error:', error);
+      setUploadingImage(false);
+    }
+  };
+
   const handleUnsendMessage = (messageId: string) => {
     if (!user) return;
 
@@ -391,6 +434,18 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
 
 
         <View style={styles.inputArea}>
+          <TouchableOpacity
+            onPress={handlePickImage}
+            disabled={uploadingImage}
+            style={styles.attachButton}
+          >
+            {uploadingImage ? (
+              <ActivityIndicator size="small" color={colors.primary} />
+            ) : (
+              <Text style={styles.attachButtonText}>📎</Text>
+            )}
+          </TouchableOpacity>
+
           <TextInput
             style={styles.input}
             placeholder="Type a thoughtful message..."
@@ -398,17 +453,22 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
             value={messageText}
             onChangeText={setMessageText}
             multiline
+            editable={!uploadingImage}
           />
 
           <TouchableOpacity
             onPress={handleSendMessage}
-            disabled={!messageText.trim()}
+            disabled={!messageText.trim() || uploadingImage}
             style={[
               styles.sendButton,
-              !messageText.trim() && styles.sendButtonDisabled,
+              (!messageText.trim() || uploadingImage) && styles.sendButtonDisabled,
             ]}
           >
-            <Text style={styles.sendButtonText}>➤</Text>
+            {uploadingImage ? (
+              <ActivityIndicator color={colors.background} size="small" />
+            ) : (
+              <Text style={styles.sendButtonText}>➤</Text>
+            )}
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -634,6 +694,16 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 4,
     elevation: 2,
+  },
+  attachButton: {
+    width: 40,
+    height: 40,
+    borderRadius: borderRadius.full,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  attachButtonText: {
+    fontSize: 20,
   },
   input: {
     flex: 1,
