@@ -451,49 +451,44 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
                 end={{ x: 1, y: 1 }}
                 style={styles.avatarGradient}
               >
+                {/* Profile Avatar */}
+                {(() => {
+                  const ProfileAvatar: React.FC = () => {
+                    const [avatarUrl, setAvatarUrl] = React.useState<string | null>(
+                      selectedFriend?.avatar_url || null
+                    );
 
-                  {/* Profile Avatar */}
-                  {(() => {
-                    // Inline component to fetch & render the friend's avatar if available.
-                    const ProfileAvatar: React.FC = () => {
-                      const [avatarUrl, setAvatarUrl] = React.useState<string | null>(
-                        selectedFriend?.avatar_url || null
-                      );
+                    React.useEffect(() => {
+                      let mounted = true;
+                      const fetchAvatar = async () => {
+                        if (!selectedFriend) return;
+                        if (selectedFriend.avatar_url) {
+                          setAvatarUrl(selectedFriend.avatar_url);
+                          return;
+                        }
 
-                      React.useEffect(() => {
-                        let mounted = true;
-                        const fetchAvatar = async () => {
-                          if (!selectedFriend) return;
+                        try {
+                          const { data, error } = await supabase
+                            .from('profiles')
+                            .select('avatar_url')
+                            .eq('id', selectedFriend.id)
+                            .single();
 
-                          // If the selectedFriend already has an avatar_url, use it
-                          if (selectedFriend.avatar_url) {
-                            setAvatarUrl(selectedFriend.avatar_url);
-                            return;
+                          if (!error && data?.avatar_url && mounted) {
+                            setAvatarUrl(data.avatar_url);
                           }
+                        } catch (err) {
+                          console.error('Error fetching avatar:', err);
+                        }
+                      };
 
-                          try {
-                            const { data, error } = await supabase
-                              .from('profiles')
-                              .select('avatar_url')
-                              .eq('id', selectedFriend.id)
-                              .single();
+                      fetchAvatar();
+                      return () => {
+                        mounted = false;
+                      };
+                    }, [selectedFriend?.id]);
 
-                            if (!error && data?.avatar_url && mounted) {
-                              setAvatarUrl(data.avatar_url);
-                            }
-                          } catch (err) {
-                            console.error('Error fetching avatar:', err);
-                          }
-                        };
-
-                        fetchAvatar();
-                        return () => {
-                          mounted = false;
-                        };
-                      }, [selectedFriend?.id]);
-
-                      if (!avatarUrl) return null;
-
+                    if (avatarUrl) {
                       return (
                         <Image
                           source={{ uri: avatarUrl }}
@@ -501,14 +496,17 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
                           resizeMode="cover"
                         />
                       );
-                    };
+                    }
 
-                    return <ProfileAvatar />;
-                  })()}
+                    return (
+                      <Text style={styles.avatarLargeText}>
+                        {selectedFriend.username?.charAt(0).toUpperCase()}
+                      </Text>
+                    );
+                  };
 
-                <Text style={styles.avatarLargeText}>
-                  {selectedFriend.username?.charAt(0).toUpperCase()}
-                </Text>
+                  return <ProfileAvatar />;
+                })()}
               </LinearGradient>
             </View>
             <View style={styles.headerTextContainer}>
