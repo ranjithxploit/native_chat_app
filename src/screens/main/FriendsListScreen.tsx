@@ -470,7 +470,7 @@ export const FriendsListScreen: React.FC<FriendsListScreenProps> = ({ navigation
             <Button
               label="Remove Friend"
               onPress={() => handleRemoveFriend(selectedProfileUser?.id)}
-              variant="outline"
+              variant="secondary"
               size="md"
               style={styles.profileModalRemoveButton}
             />
