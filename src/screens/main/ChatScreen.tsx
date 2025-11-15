@@ -373,68 +373,70 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   return (
-    <View style={styles.screenWrapper}>
+    <KeyboardAvoidingView 
+      style={styles.screenWrapper}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={0}
+    >
       <LinearGradient
         colors={[colors.surface, colors.background]}
         style={styles.backgroundGradient}
         pointerEvents="none"
       />
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.container}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 70}
-      >
-        <View style={styles.chatContent}>
-          <View style={styles.header}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButtonWrapper}>
-              <Text style={styles.backButton}>←</Text>
-            </TouchableOpacity>
-            <View style={styles.headerInfo}>
-              <View style={styles.headerTopRow}>
-                <View style={styles.avatarLarge}>
-                  <LinearGradient
-                    colors={[colors.primary, colors.secondary]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.avatarGradient}
-                  >
-                    <Text style={styles.avatarLargeText}>
-                      {selectedFriend.username?.charAt(0).toUpperCase()}
-                    </Text>
-                  </LinearGradient>
-                </View>
-                <View style={styles.headerTextContainer}>
-                  <Text style={styles.friendName}>{selectedFriend.username}</Text>
-                  <Text style={styles.onlineStatus}>{getPresenceText()}</Text>
-                </View>
-              </View>
+      
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButtonWrapper}>
+          <Text style={styles.backButton}>⇦</Text>
+        </TouchableOpacity>
+        <View style={styles.headerInfo}>
+          <View style={styles.headerTopRow}>
+            <View style={styles.avatarLarge}>
+              <LinearGradient
+                colors={[colors.primary, colors.secondary]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.avatarGradient}
+              >
+                <Text style={styles.avatarLargeText}>
+                  {selectedFriend.username?.charAt(0).toUpperCase()}
+                </Text>
+              </LinearGradient>
+            </View>
+            <View style={styles.headerTextContainer}>
+              <Text style={styles.friendName}>{selectedFriend.username}</Text>
+              <Text style={styles.onlineStatus}>{getPresenceText()}</Text>
             </View>
           </View>
-
-          {loadingMessages ? (
-            <ActivityIndicator size="large" color={colors.primary} style={styles.loader} />
-          ) : (
-            <View style={styles.messagesWrapper}>
-              <FlatList
-                ref={flatListRef}
-                data={enhancedMessages}
-                renderItem={renderMessageItem}
-                keyExtractor={(item) => item.id}
-                contentContainerStyle={styles.messagesList}
-                showsVerticalScrollIndicator={false}
-                onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
-                ListEmptyComponent={
-                  <View style={styles.emptyStateCard}>
-                    <Text style={styles.emptyCardTitle}>Say hello 👋</Text>
-                    <Text style={styles.emptyCardSubtitle}>Your conversation history is clean. Start a new vibe!</Text>
-                    <Button label="Send first message" onPress={() => flatListRef.current?.scrollToEnd()} />
-                  </View>
-                }
-              />
-            </View>
-          )}
         </View>
+      </View>
 
+      {loadingMessages ? (
+        <ActivityIndicator size="large" color={colors.primary} style={styles.loader} />
+      ) : (
+        <View style={styles.messagesWrapper}>
+          <FlatList
+            ref={flatListRef}
+            data={enhancedMessages}
+            renderItem={renderMessageItem}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.messagesList}
+            showsVerticalScrollIndicator={false}
+            onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
+            ListEmptyComponent={
+              <View style={styles.emptyStateCard}>
+                <Text style={styles.emptyCardTitle}>Say hello 👋</Text>
+                <Text style={styles.emptyCardSubtitle}>Your conversation history is clean. Start a new vibe!</Text>
+                <Button label="Send first message" onPress={() => flatListRef.current?.scrollToEnd()} />
+              </View>
+            }
+          />
+        </View>
+      )}
+
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+      >
         <View style={styles.inputAreaWrapper}>
           <View style={styles.inputArea}>
             <TouchableOpacity
@@ -476,7 +478,7 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
           </View>
         </View>
       </KeyboardAvoidingView>
-    </View>
+    </KeyboardAvoidingView>
   );
 };
 
@@ -490,7 +492,6 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    backgroundColor: colors.background,
   },
   chatContent: {
     flex: 1,
@@ -535,9 +536,11 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   backButton: {
-    fontSize: 18,
+    fontSize: 20,
     color: colors.text,
     fontWeight: '600',
+    borderBottomWidth: 8,
+    borderColor: colors.surface2,
   },
   headerInfo: {
     flex: 1,
@@ -692,61 +695,58 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
 
+  inputAreaWrapper: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.background,
+  },
   inputArea: {
-    borderRadius: borderRadius.xl,
+    borderRadius: borderRadius.lg,
     backgroundColor: colors.surface2,
     borderWidth: 1,
     borderColor: colors.border,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 4,
-    elevation: 2,
+    maxHeight: 56,
   },
   attachButton: {
-    width: 40,
-    height: 40,
+    width: 36,
+    height: 36,
     borderRadius: borderRadius.full,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: spacing.sm,
   },
   attachButtonText: {
-    fontSize: 15,
+    fontSize: 18,
   },
   input: {
-    flex:1,
+    flex: 1,
     color: colors.text,
     ...typography.body,
-    paddingVertical:0.1,
-    maxHeight: 16,
-    minHeight:44,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.xs,
+    maxHeight: 100,
+    minHeight: 40,
+    fontSize: 15,
   },
   sendButton: {
-    width: 40,
-    height: 40,
-    borderRadius: borderRadius.lg,
+    width: 36,
+    height: 36,
+    borderRadius: borderRadius.md,
     backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#03cee4ff',
-    shadowOpacity: 0.3,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 8,
-    elevation: 6,
   },
   sendButtonDisabled: {
-    opacity: 0.6,
+    opacity: 0.5,
   },
   sendButtonText: {
-    fontSize: 23,
+    fontSize: 18,
     color: colors.background,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   emptyStateCard: {
     marginTop: spacing.xl,
