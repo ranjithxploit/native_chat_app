@@ -180,38 +180,37 @@ export const FriendsListScreen: React.FC<FriendsListScreenProps> = ({ navigation
         onPress: async () => {
           try {
             console.log('👤 Removing friend:', friendId);
-            console.log('📋 Current friends count:', friends.length);
+            console.log('Current friends count:', friends.length);
             
             // Remove from database
             await friendService.removeFriend(user.id, friendId);
-            console.log('✅ Database removal complete');
+            console.log('Database removal complete');
             
-            // Clear selected friend if it's the one being removed
             if (selectedFriend?.id === friendId) {
               setSelectedFriend(null);
-              console.log('✅ Selected friend cleared');
+              console.log('Selected friend cleared');
             }
             
             // Clear messages
             setMessages([]);
-            console.log('✅ Messages cleared');
+            console.log('Messages cleared');
             
             // Close modal
             setProfileModalVisible(false);
             
             // Reload friends list from database
             const updatedFriendsList = await friendService.getFriends(user.id);
-            console.log('📋 Updated friends count from DB:', updatedFriendsList.length);
+            console.log('Updated friends count from DB:', updatedFriendsList.length);
             setFriends(updatedFriendsList);
             
             // Also reload requests
             const updatedRequestsList = await friendService.getPendingRequests(user.id);
             setFriendRequests(updatedRequestsList);
             
-            console.log('✅ UI updated with fresh data');
+            console.log('UI updated with fresh data');
             Alert.alert('Success', 'Friend removed successfully');
           } catch (error: any) {
-            console.error('❌ Remove friend error:', error);
+            console.error('Remove friend error:', error);
             Alert.alert('Error', error.message || 'Failed to remove friend');
           }
         },
@@ -230,7 +229,7 @@ export const FriendsListScreen: React.FC<FriendsListScreenProps> = ({ navigation
           source={{ uri: item.avatar_url }}
           style={styles.friendAvatarImage}
           onError={(e) => {
-            console.warn('⚠️  Friend avatar load error:', e.nativeEvent.error);
+            console.warn('Friend avatar load error:', e.nativeEvent.error);
           }}
         />
       ) : (
@@ -468,7 +467,6 @@ export const FriendsListScreen: React.FC<FriendsListScreenProps> = ({ navigation
               </Text>
             </View>
 
-            {/* Remove Friend Button */}
             <Button
               label="Remove Friend"
               onPress={() => handleRemoveFriend(selectedProfileUser?.id)}
@@ -709,7 +707,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     backgroundColor: colors.surface2,
     borderRadius: borderRadius.lg,
-    paddingVertical: spacing.lg,
+    paddingVertical: 10,
     marginBottom: spacing.lg,
   },
   profileModalInfoItem: {
@@ -726,13 +724,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   profileModalRemoveButton: {
-    marginTop: spacing.md,
+    //i will fill if needed!
   },
   profileModalEmailContainer: {
     backgroundColor: colors.surface2,
     borderRadius: borderRadius.lg,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
+    paddingVertical:10,
+    paddingHorizontal: spacing.md,
     marginBottom: spacing.lg,
     alignItems: 'center',
   },
@@ -758,6 +756,5 @@ const styles = StyleSheet.create({
   addIcon: {
     width: 24,
     height: 24,
-    tintColor: colors.background,
   },
 });

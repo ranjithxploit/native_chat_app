@@ -430,8 +430,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     right: 0,
-    width: 36,
-    height: 36,
+
     borderRadius: borderRadius.full,
     backgroundColor: colors.primary,
     justifyContent: 'center',
@@ -440,9 +439,8 @@ const styles = StyleSheet.create({
     borderColor: colors.background,
   },
   cameraIcon: {
-    width: 20,
-    height: 20,
-    tintColor: colors.background,
+    width: 30,
+    height: 30,
   },
   headerInfo: {
     alignItems: 'center',
