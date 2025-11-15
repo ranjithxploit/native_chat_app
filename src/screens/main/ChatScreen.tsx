@@ -11,6 +11,8 @@ import {
   Image,
   TextInput,
   ActivityIndicator,
+  Keyboard,
+  StatusBar,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -20,6 +22,8 @@ import { Button } from '../../components/Button';
 import { messageService } from '../../services/messageService';
 import { cloudinaryService } from '../../services/cloudinaryService';
 import { useAuthStore, useFriendStore, useMessageStore, useOnlineStore } from '../../store/useStore';
+import { red } from 'react-native-reanimated/lib/typescript/Colors';
+const supabase = require('../../services/supabase').supabase;
 
 type Props = NativeStackScreenProps<any, 'Chat'>;
 
@@ -45,7 +49,9 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
   const [loadingMessages, setLoadingMessages] = useState(true);
   const [lastActive, setLastActive] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [keyboardOffset, setKeyboardOffset] = useState(0);
   const flatListRef = useRef<FlatList>(null);
+  const isUserScrolling = useRef(false);
 
   const user = useAuthStore((state) => state.user);
   const selectedFriend = useFriendStore((state) => state.selectedFriend);
@@ -101,6 +107,29 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
       clearInterval(intervalId);
     };
   }, [selectedFriend?.id]);
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const showListener = Keyboard.addListener(showEvent, (event) => {
+      setKeyboardOffset(event.endCoordinates?.height || 0);
+      // Scroll to bottom when keyboard shows
+      isUserScrolling.current = false;
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    });
+
+    const hideListener = Keyboard.addListener(hideEvent, () => {
+      setKeyboardOffset(0);
+    });
+
+    return () => {
+      showListener.remove();
+      hideListener.remove();
+    };
+  }, []);
 
 
 
@@ -220,7 +249,8 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
         user.id,
         selectedFriend.id,
         trimmed,
-        'text'
+        'text',
+        { senderName: user.username || 'Someone' }
       );
 
       addMessage(message);
@@ -267,7 +297,8 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
             user.id,
             selectedFriend.id,
             url,
-            publicId
+            publicId,
+            { senderName: user.username || 'Someone' }
           );
 
           addMessage(message);
@@ -394,8 +425,10 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
     <KeyboardAvoidingView 
       style={styles.screenWrapper}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={0}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : (StatusBar.currentHeight || 0)}
     >
+      <StatusBar barStyle="light-content" backgroundColor={colors.background} />
+      <View style={styles.statusBarBackground} />
       <LinearGradient
         colors={[colors.surface, colors.background]}
         style={styles.backgroundGradient}
@@ -418,6 +451,61 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
                 end={{ x: 1, y: 1 }}
                 style={styles.avatarGradient}
               >
+
+                  {/* Profile Avatar */}
+                  {(() => {
+                    // Inline component to fetch & render the friend's avatar if available.
+                    const ProfileAvatar: React.FC = () => {
+                      const [avatarUrl, setAvatarUrl] = React.useState<string | null>(
+                        selectedFriend?.avatar_url || null
+                      );
+
+                      React.useEffect(() => {
+                        let mounted = true;
+                        const fetchAvatar = async () => {
+                          if (!selectedFriend) return;
+
+                          // If the selectedFriend already has an avatar_url, use it
+                          if (selectedFriend.avatar_url) {
+                            setAvatarUrl(selectedFriend.avatar_url);
+                            return;
+                          }
+
+                          try {
+                            const { data, error } = await supabase
+                              .from('profiles')
+                              .select('avatar_url')
+                              .eq('id', selectedFriend.id)
+                              .single();
+
+                            if (!error && data?.avatar_url && mounted) {
+                              setAvatarUrl(data.avatar_url);
+                            }
+                          } catch (err) {
+                            console.error('Error fetching avatar:', err);
+                          }
+                        };
+
+                        fetchAvatar();
+                        return () => {
+                          mounted = false;
+                        };
+                      }, [selectedFriend?.id]);
+
+                      if (!avatarUrl) return null;
+
+                      return (
+                        <Image
+                          source={{ uri: avatarUrl }}
+                          style={{ position: 'absolute', width: '100%', height: '100%' }}
+                          resizeMode="cover"
+                        />
+                      );
+                    };
+
+                    return <ProfileAvatar />;
+                  })()}
+
                 <Text style={styles.avatarLargeText}>
                   {selectedFriend.username?.charAt(0).toUpperCase()}
                 </Text>
@@ -440,12 +528,27 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
             data={enhancedMessages}
             renderItem={renderMessageItem}
             keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.messagesList}
+            contentContainerStyle={[
+              styles.messagesList,
+              keyboardOffset > 0 && { paddingBottom: spacing.md + keyboardOffset },
+            ]}
             showsVerticalScrollIndicator={false}
-            onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
+            onContentSizeChange={() => {
+              if (!isUserScrolling.current) {
+                flatListRef.current?.scrollToEnd({ animated: false });
+              }
+            }}
+            onScrollBeginDrag={() => {
+              isUserScrolling.current = true;
+            }}
+            onMomentumScrollEnd={() => {
+              setTimeout(() => {
+                isUserScrolling.current = false;
+              }, 500);
+            }}
             ListEmptyComponent={
               <View style={styles.emptyStateCard}>
-                <Text style={styles.emptyCardTitle}>Say hello 👋</Text>
+                <Text style={styles.emptyCardTitle}>Say hello</Text>
                 <Text style={styles.emptyCardSubtitle}>Your conversation history is clean. Start a new vibe!</Text>
                 <Button label="Send first message" onPress={() => flatListRef.current?.scrollToEnd()} />
               </View>
@@ -454,54 +557,53 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
         </View>
       )}
 
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+      <View
+        style={[
+          styles.inputAreaWrapper,
+        ]}
       >
-        <View style={styles.inputAreaWrapper}>
-          <View style={styles.inputArea}>
-            <TouchableOpacity
-              onPress={handlePickImage}
-              disabled={uploadingImage}
-              style={styles.attachButton}
-            >
-              {uploadingImage ? (
-                <ActivityIndicator size="small" color={colors.primary} />
-              ) : (
-                <Image 
-                  source={require('../../icons/image_upload.png')} 
-                  style={styles.attachButtonIcon}
-                />
-              )}
-            </TouchableOpacity>
+        <View style={styles.inputArea}>
+          <TouchableOpacity
+            onPress={handlePickImage}
+            disabled={uploadingImage}
+            style={styles.attachButton}
+          >
+            {uploadingImage ? (
+              <ActivityIndicator size="small" color={colors.primary} />
+            ) : (
+              <Image 
+                source={require('../../icons/image_upload.png')} 
+                style={styles.attachButtonIcon}
+              />
+            )}
+          </TouchableOpacity>
 
-            <TextInput
-              style={styles.input}
-              placeholder="Message"
-              placeholderTextColor={colors.textTertiary}
-              value={messageText}
-              onChangeText={setMessageText}
-              multiline
-              editable={!uploadingImage}
-            />
+          <TextInput
+            style={styles.input}
+            placeholder="Message"
+            placeholderTextColor={colors.textTertiary}
+            value={messageText}
+            onChangeText={setMessageText}
+            multiline
+            editable={!uploadingImage}
+          />
 
-            <TouchableOpacity
-              onPress={handleSendMessage}
-              disabled={!messageText.trim() || uploadingImage}
-              style={styles.sendButton}
-            >
-              {uploadingImage ? (
-                <ActivityIndicator size="small" color={colors.primary} />
-              ) : (
-                <Image 
-                  source={require('../../icons/send.png')} 
-                  style={styles.sendButtonIcon}
-                />
-              )}
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            onPress={handleSendMessage}
+            disabled={!messageText.trim() || uploadingImage}
+            style={styles.sendButton}
+          >
+            {uploadingImage ? (
+              <ActivityIndicator size="small" color={colors.primary} />
+            ) : (
+              <Image 
+                source={require('../../icons/send.png')} 
+                style={styles.sendButtonIcon}
+              />
+            )}
+          </TouchableOpacity>
         </View>
-      </KeyboardAvoidingView>
+      </View>
     </KeyboardAvoidingView>
   );
 };
@@ -509,6 +611,10 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   screenWrapper: {
     flex: 1,
+    backgroundColor: colors.background,
+  },
+  statusBarBackground: {
+    height: 1,
     backgroundColor: colors.background,
   },
   backgroundGradient: {
@@ -533,11 +639,10 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   header: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.lg,
+    paddingVertical: null,
+    paddingHorizontal: 9,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
   },
   backButtonWrapper: {
     borderRadius: borderRadius.full,
@@ -561,15 +666,16 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerTopRow: {
+    borderColor: colors.background,
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
+    paddingTop: 6,
+    gap: 8,
   },
   avatarLarge: {
-    width: 50,
-    height: 50,
+    width: 40,
+    height: 40,
     borderRadius: borderRadius.full,
-    borderWidth: 0,
+    borderWidth: 1.6, borderColor: '#FF0000',
     overflow: 'hidden',
   },
   avatarGradient: {
@@ -607,9 +713,9 @@ const styles = StyleSheet.create({
   },
   messageContainer: {
     flexDirection: 'row',
-    marginVertical: spacing.xs,
+    marginVertical: 2.5,
     alignItems: 'flex-end',
-    gap: spacing.sm,
+    gap: 8,
   },
   messageContainerLeft: {
     justifyContent: 'flex-start',

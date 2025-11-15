@@ -1,8 +1,3 @@
-/**
- * Register Screen
- * User registration with email, password, and username
- */
-
 import React, { useState } from 'react';
 import {
   StyleSheet,
@@ -89,18 +84,15 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
         throw new Error('Registration failed: No user returned');
       }
 
-      // Set session first
       if (result.session) {
         setSession(result.session);
       }
-
-      // Set the user object (it's returned from the register function)
       setUser(result.user);
       
-      console.log('✅ Registration successful, user created:', result.user.email);
+      console.log('Registration successful, user created:', result.user.email);
       Alert.alert('Success', 'Account created! Logging you in...');
     } catch (error: any) {
-      console.error('❌ Registration error:', error);
+      console.error('Registration error:', error);
       Alert.alert('Registration Error', error.message || 'Failed to register. Please try again.');
     } finally {
       setLoading(false);
@@ -116,13 +108,10 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
         <View style={styles.header}>
           <Text style={styles.title}>Create Account</Text>
           <Text style={styles.subtitle}>Join our community and start chatting</Text>
         </View>
-
-        {/* Form */}
         <View style={styles.form}>
           <CustomTextInput
             label="Email"
@@ -133,7 +122,6 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
             autoCapitalize="none"
             error={errors.email}
           />
-
           <CustomTextInput
             label="Username"
             placeholder="Choose a username"
@@ -170,7 +158,6 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
           />
         </View>
 
-        {/* Footer */}
         <View style={styles.footer}>
           <Text style={styles.footerText}>Already have an account? </Text>
           <TouchableOpacity onPress={() => navigation.navigate('Login')}>

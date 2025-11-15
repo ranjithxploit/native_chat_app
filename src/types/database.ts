@@ -4,6 +4,7 @@ export interface User {
   username: string;
   avatar_url?: string;
   bio?: string;
+  push_token?: string;
   created_at: string;
   updated_at: string;
 }

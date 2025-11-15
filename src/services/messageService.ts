@@ -1,12 +1,14 @@
 import { supabase } from './supabase';
 import { Message } from '../types/database';
+import { notificationService } from './notificationService';
 
 export const messageService = {
   async sendMessage(
     senderId: string,
     receiverId: string,
     content: string,
-    type: 'text' | 'image' = 'text'
+    type: 'text' | 'image' = 'text',
+    options?: { senderName?: string }
   ) {
     try {
       const { data, error } = await supabase
@@ -26,6 +28,17 @@ export const messageService = {
 
       if (error) throw error;
 
+      if (options?.senderName) {
+        notificationService
+          .sendChatPushNotification({
+            receiverId,
+            senderId,
+            senderName: options.senderName,
+            messagePreview: type === 'image' ? '📷 Photo' : content,
+          })
+          .catch((error) => console.error('Push notification error:', error));
+      }
+
       return data;
     } catch (error) {
       console.error('Send message error:', error);
@@ -37,7 +50,8 @@ export const messageService = {
     senderId: string,
     receiverId: string,
     imageUrl: string,
-    imageKey: string
+    imageKey: string,
+    options?: { senderName?: string }
   ) {
     try {
       const { data, error } = await supabase
@@ -58,6 +72,18 @@ export const messageService = {
         .single();
 
       if (error) throw error;
+
+      if (options?.senderName) {
+        notificationService
+          .sendChatPushNotification({
+            receiverId,
+            senderId,
+            senderName: options.senderName,
+            messagePreview: '📷 Photo',
+            metadata: { imageUrl },
+          })
+          .catch((error) => console.error('Push notification error:', error));
+      }
 
       return data;
     } catch (error) {

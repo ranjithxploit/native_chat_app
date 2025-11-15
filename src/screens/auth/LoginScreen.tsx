@@ -1,8 +1,3 @@
-/**
- * Login Screen
- * Authentication with email and password
- */
-
 import React, { useState } from 'react';
 import {
   StyleSheet,

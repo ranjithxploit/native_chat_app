@@ -3,7 +3,7 @@
  * Manages authentication and app navigation
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   NavigationContainer,
   DefaultTheme,
@@ -24,7 +24,9 @@ import { ProfileScreen } from '../screens/main/ProfileScreen';
 import { authService } from '../services/authService';
 import { supabase } from '../services/supabase';
 import { scheduleImageCleanup } from '../services/imageService';
-import { useAuthStore } from '../store/useStore';
+import { notificationService } from '../services/notificationService';
+import { messageService } from '../services/messageService';
+import { useAuthStore, useFriendStore } from '../store/useStore';
 import { colors } from '../theme/theme';
 
 type RootStackParamList = {
@@ -143,6 +145,19 @@ export const RootNavigator: React.FC = () => {
   
   const user = useAuthStore((state) => state.user);
   const setUser = useAuthStore((state) => state.setUser);
+  const selectedFriend = useFriendStore((state) => state.selectedFriend);
+  const friends = useFriendStore((state) => state.friends);
+
+  const selectedFriendRef = useRef<typeof selectedFriend>(null);
+  const friendsRef = useRef(friends);
+
+  useEffect(() => {
+    selectedFriendRef.current = selectedFriend;
+  }, [selectedFriend]);
+
+  useEffect(() => {
+    friendsRef.current = friends;
+  }, [friends]);
 
   useEffect(() => {
     initializeApp();
@@ -182,6 +197,59 @@ export const RootNavigator: React.FC = () => {
       console.log('👤 User logged out or not set');
     }
   }, [user]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    let isMounted = true;
+    const init = async () => {
+      try {
+        const token = await notificationService.registerForPushNotifications(user.id);
+        if (token) {
+          console.log('📱 Registered push token:', token);
+        }
+      } catch (error) {
+        console.error('Push registration error:', error);
+      }
+    };
+
+    init();
+
+    const foregroundSub = notificationService.addForegroundListener((notification) => {
+      console.log('🔔 Notification (foreground):', notification.request?.content?.title);
+    });
+
+    const responseSub = notificationService.setupNotificationListener((notification) => {
+      console.log('🔔 Notification tapped:', notification.request?.content?.data);
+    });
+
+    const messageSubscription = messageService.subscribeToUserMessages(user.id, (message) => {
+      if (!isMounted) return;
+      if (message.sender_id === user.id) return;
+
+      const activeFriend = selectedFriendRef.current;
+      if (activeFriend && activeFriend.id === message.sender_id) {
+        return;
+      }
+
+      const senderName = friendsRef.current.find((friend) => friend.id === message.sender_id)?.username || 'New message';
+      const preview = message.type === 'image' ? '📷 Photo' : message.content;
+
+      notificationService.sendLocalNotification(senderName, preview, {
+        type: 'message',
+        senderId: message.sender_id,
+      });
+    });
+
+    return () => {
+      isMounted = false;
+      foregroundSub?.remove();
+      responseSub?.remove();
+      if (messageSubscription && typeof messageSubscription.unsubscribe === 'function') {
+        messageSubscription.unsubscribe();
+      }
+    };
+  }, [user?.id]);
 
   const initializeApp = async () => {
     try {

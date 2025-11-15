@@ -137,7 +137,6 @@ export const FriendsListScreen: React.FC<FriendsListScreenProps> = ({ navigation
   const handleViewProfile = async (friend: any) => {
     setSelectedProfileUser(friend);
     
-    // Load last active status
     try {
       const { data, error } = await require('../../services/supabase').supabase
         .from('online_status')
@@ -179,34 +178,22 @@ export const FriendsListScreen: React.FC<FriendsListScreenProps> = ({ navigation
         style: 'destructive',
         onPress: async () => {
           try {
-            console.log('👤 Removing friend:', friendId);
+            console.log('Removing friend:', friendId);
             console.log('Current friends count:', friends.length);
-            
-            // Remove from database
             await friendService.removeFriend(user.id, friendId);
             console.log('Database removal complete');
-            
             if (selectedFriend?.id === friendId) {
               setSelectedFriend(null);
               console.log('Selected friend cleared');
             }
-            
-            // Clear messages
             setMessages([]);
             console.log('Messages cleared');
-            
-            // Close modal
             setProfileModalVisible(false);
-            
-            // Reload friends list from database
             const updatedFriendsList = await friendService.getFriends(user.id);
             console.log('Updated friends count from DB:', updatedFriendsList.length);
             setFriends(updatedFriendsList);
-            
-            // Also reload requests
             const updatedRequestsList = await friendService.getPendingRequests(user.id);
             setFriendRequests(updatedRequestsList);
-            
             console.log('UI updated with fresh data');
             Alert.alert('Success', 'Friend removed successfully');
           } catch (error: any) {
@@ -261,7 +248,7 @@ export const FriendsListScreen: React.FC<FriendsListScreenProps> = ({ navigation
             source={{ uri: item.sender.avatar_url }}
             style={styles.friendAvatarImage}
             onError={(e) => {
-              console.warn('⚠️  Sender avatar load error:', e.nativeEvent.error);
+              console.warn('Sender avatar load error:', e.nativeEvent.error);
             }}
           />
         ) : (
@@ -301,7 +288,7 @@ export const FriendsListScreen: React.FC<FriendsListScreenProps> = ({ navigation
           source={{ uri: item.avatar_url }}
           style={styles.friendAvatarImage}
           onError={(e) => {
-            console.warn('⚠️  Search result avatar load error:', e.nativeEvent.error);
+            console.warn('Search result avatar load error:', e.nativeEvent.error);
           }}
         />
       ) : (
@@ -487,8 +474,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   searchContainer: {
-    padding: spacing.lg,
-    paddingTop: spacing.xl,
+    padding: 3,
+    paddingTop: 10,
     backgroundColor: colors.background,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,

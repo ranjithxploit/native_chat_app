@@ -460,7 +460,7 @@ const styles = StyleSheet.create({
     color: colors.textTertiary,
   },
   section: {
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal:0,
     marginBottom: spacing.lg,
     paddingVertical: spacing.md,
     backgroundColor: colors.surface,
@@ -483,15 +483,10 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontWeight: '600',
   },
-  infoRow: {
-    paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
   infoLabel: {
     ...typography.caption,
     color: colors.textSecondary,
-    marginBottom: spacing.xs,
+    marginBottom:10,
   },
   infoValue: {
     ...typography.body,
