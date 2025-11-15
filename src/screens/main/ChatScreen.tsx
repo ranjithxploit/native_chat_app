@@ -4,7 +4,6 @@ import {
   View,
   Text,
   FlatList,
-  ScrollView,
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
@@ -14,13 +13,10 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, spacing, typography, borderRadius } from '../../theme/theme';
 import { Button } from '../../components/Button';
 import { messageService } from '../../services/messageService';
-import { imageService } from '../../services/imageService';
-import { aiService } from '../../services/aiService';
 import { useAuthStore, useFriendStore, useMessageStore, useOnlineStore } from '../../store/useStore';
 
 type Props = NativeStackScreenProps<any, 'Chat'>;
@@ -45,12 +41,7 @@ type EnhancedMessage = MessageRecord & {
 export const ChatScreen: React.FC<Props> = ({ navigation }) => {
   const [messageText, setMessageText] = useState('');
   const [loadingMessages, setLoadingMessages] = useState(true);
-  const [uploadingImage, setUploadingImage] = useState(false);
   const [lastActive, setLastActive] = useState<string | null>(null);
-  const [smartReplies, setSmartReplies] = useState<string[]>([]);
-  const [smartRepliesLoading, setSmartRepliesLoading] = useState(false);
-  const [smartRepliesError, setSmartRepliesError] = useState<string | null>(null);
-  const [smartRepliesRequestId, setSmartRepliesRequestId] = useState(0);
   const flatListRef = useRef<FlatList>(null);
 
   const user = useAuthStore((state) => state.user);
@@ -63,39 +54,7 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
   const addMessage = useMessageStore((state) => state.addMessage);
   const updateMessage = useMessageStore((state) => state.updateMessage);
 
-  const conversationSnippet = useMemo(() => {
-    if (!messages || !user || !selectedFriend) return [];
 
-    return messages
-      .filter((msg: MessageRecord) => msg.type === 'text' && !msg.is_deleted)
-      .slice(-8)
-      .map((msg: MessageRecord) => {
-        const senderLabel = msg.sender_id === user.id ? 'You' : selectedFriend.username || 'Friend';
-        return `${senderLabel}: ${msg.content}`;
-      });
-  }, [messages, selectedFriend?.id, selectedFriend?.username, user?.id]);
-
-  const lastIncomingMessage = useMemo(() => {
-    if (!messages || !selectedFriend) return null;
-    const reversed = [...messages].reverse();
-    return (
-      reversed.find(
-        (msg: MessageRecord) =>
-          msg.sender_id === selectedFriend.id &&
-          msg.type === 'text' &&
-          !msg.is_deleted
-      ) || null
-    );
-  }, [messages, selectedFriend?.id]);
-
-  const latestMessage = messages && messages.length > 0 ? messages[messages.length - 1] : null;
-  const shouldDisplaySmartReplies = Boolean(
-    lastIncomingMessage &&
-    latestMessage &&
-    selectedFriend &&
-    latestMessage.id === lastIncomingMessage.id &&
-    latestMessage.sender_id === selectedFriend.id
-  );
 
   // Check if still friends
   useEffect(() => {
@@ -122,54 +81,7 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
     };
   }, [selectedFriend]);
 
-  useEffect(() => {
-    if (!shouldDisplaySmartReplies || !user || !selectedFriend || !lastIncomingMessage) {
-      setSmartReplies([]);
-      setSmartRepliesError(null);
-      setSmartRepliesLoading(false);
-      return;
-    }
 
-    let isActive = true;
-    const fetchSmartReplies = async () => {
-      setSmartRepliesLoading(true);
-      setSmartRepliesError(null);
-
-      try {
-        const replies = await aiService.generateSmartReplies(
-          lastIncomingMessage.content,
-          conversationSnippet
-        );
-        if (isActive) {
-          setSmartReplies(replies);
-        }
-      } catch (error) {
-        console.error('Smart replies error:', error);
-        if (isActive) {
-          setSmartReplies([]);
-          setSmartRepliesError('AI assistant is resting. Tap refresh to retry.');
-        }
-      } finally {
-        if (isActive) {
-          setSmartRepliesLoading(false);
-        }
-      }
-    };
-
-    fetchSmartReplies();
-
-    return () => {
-      isActive = false;
-    };
-  }, [
-    conversationSnippet,
-    lastIncomingMessage?.content,
-    lastIncomingMessage?.id,
-    selectedFriend?.id,
-    shouldDisplaySmartReplies,
-    smartRepliesRequestId,
-    user?.id,
-  ]);
 
   const ensureStillFriends = () => {
     if (!selectedFriend) return false;
@@ -300,67 +212,13 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
     }
   };
 
-  const handleSmartReplyPress = async (reply: string) => {
-    const success = await sendMessageWithContent(reply);
-    if (success) {
-      setSmartReplies([]);
-    }
-  };
 
-  const handleSmartReplyLongPress = (reply: string) => {
-    setMessageText((prev) => {
-      if (!prev) return reply;
-      return `${prev.trim()} ${reply}`.trim();
-    });
-  };
-
-  const handleRefreshSmartReplies = () => {
-    setSmartRepliesRequestId(Date.now());
-  };
 
   const handleSendMessage = async () => {
     if (!messageText.trim()) return;
     const success = await sendMessageWithContent(messageText);
     if (success) {
       setMessageText('');
-    }
-  };
-
-  const handlePickImage = async () => {
-    if (!user || !selectedFriend) return;
-
-    if (!ensureStillFriends()) {
-      return;
-    }
-
-    try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
-      });
-
-      if (!result.canceled && result.assets[0]) {
-        setUploadingImage(true);
-
-        const { url, key } = await imageService.uploadImage(user.id, result.assets[0].uri);
-
-        const message = await messageService.sendImageMessage(
-          user.id,
-          selectedFriend.id,
-          url,
-          key
-        );
-
-        addMessage(message);
-        flatListRef.current?.scrollToEnd({ animated: true });
-      }
-    } catch (error) {
-      Alert.alert('Error', 'Failed to send image');
-      console.error('Pick image error:', error);
-    } finally {
-      setUploadingImage(false);
     }
   };
 
@@ -490,28 +348,23 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.headerInfo}>
             <View style={styles.headerTopRow}>
               <View style={styles.avatarLarge}>
-                <Text style={styles.avatarLargeText}>
-                  {selectedFriend.username?.charAt(0).toUpperCase()}
-                </Text>
+                <LinearGradient
+                  colors={[colors.primary, colors.secondary]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.avatarGradient}
+                >
+                  <Text style={styles.avatarLargeText}>
+                    {selectedFriend.username?.charAt(0).toUpperCase()}
+                  </Text>
+                </LinearGradient>
               </View>
-              <View>
+              <View style={styles.headerTextContainer}>
                 <Text style={styles.friendName}>{selectedFriend.username}</Text>
                 <Text style={styles.onlineStatus}>{getPresenceText()}</Text>
               </View>
             </View>
           </View>
-          <View style={styles.headerActions}>
-            <TouchableOpacity style={styles.headerActionButton}>
-              <Text style={styles.headerActionIcon}>📞</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.headerActionButton}>
-              <Text style={styles.headerActionIcon}>🎥</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        <View style={styles.pillReminder}>
-          <Text style={styles.pillReminderText}>Encrypted conversation • Swipe to react (coming soon)</Text>
         </View>
 
         {loadingMessages ? (
@@ -535,60 +388,7 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
           />
         )}
 
-        {shouldDisplaySmartReplies && (
-          <View style={styles.smartRepliesContainer}>
-            <View style={styles.smartRepliesHeader}>
-              <Text style={styles.smartRepliesTitle}>GhostLine AI replies</Text>
-              <TouchableOpacity
-                style={styles.smartRepliesRefreshButton}
-                onPress={handleRefreshSmartReplies}
-                accessibilityRole="button"
-                accessibilityLabel="Refresh smart replies"
-              >
-                <Text style={styles.smartRepliesRefreshText}>↻</Text>
-              </TouchableOpacity>
-            </View>
 
-            {smartRepliesLoading ? (
-              <ActivityIndicator color={colors.primary} size="small" />
-            ) : smartReplies.length > 0 ? (
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.smartRepliesList}
-              >
-                {smartReplies.map((reply, index) => (
-                  <TouchableOpacity
-                    key={`${reply}-${index}`}
-                    style={styles.smartReplyChip}
-                    onPress={() => handleSmartReplyPress(reply)}
-                    onLongPress={() => handleSmartReplyLongPress(reply)}
-                    disabled={uploadingImage}
-                  >
-                    <Text style={styles.smartReplyText}>{reply}</Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            ) : smartRepliesError ? (
-              <Text style={styles.smartRepliesErrorText}>{smartRepliesError}</Text>
-            ) : (
-              <Text style={styles.smartRepliesHint}>Smart suggestions appear when your friend messages you.</Text>
-            )}
-          </View>
-        )}
-
-        <View style={styles.inputAccessory}>
-          <TouchableOpacity
-            style={[styles.inputAccessoryButton, uploadingImage && styles.inputAccessoryDisabled]}
-            onPress={handlePickImage}
-            disabled={uploadingImage}
-          >
-            <Text style={styles.inputAccessoryIcon}>📎</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.inputAccessoryButton}>
-            <Text style={styles.inputAccessoryIcon}>📷</Text>
-          </TouchableOpacity>
-        </View>
 
         <View style={styles.inputArea}>
           <TextInput
@@ -598,22 +398,17 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
             value={messageText}
             onChangeText={setMessageText}
             multiline
-            editable={!uploadingImage}
           />
 
           <TouchableOpacity
             onPress={handleSendMessage}
-            disabled={!messageText.trim() || uploadingImage}
+            disabled={!messageText.trim()}
             style={[
               styles.sendButton,
-              (!messageText.trim() || uploadingImage) && styles.sendButtonDisabled,
+              !messageText.trim() && styles.sendButtonDisabled,
             ]}
           >
-            {uploadingImage ? (
-              <ActivityIndicator color={colors.background} size="small" />
-            ) : (
-              <Text style={styles.sendButtonText}>➤</Text>
-            )}
+            <Text style={styles.sendButtonText}>➤</Text>
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -695,23 +490,7 @@ const styles = StyleSheet.create({
     color: colors.textTertiary,
     marginTop: spacing.xs,
   },
-  headerActions: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  headerActionButton: {
-    width: 40,
-    height: 40,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.surface,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  headerActionIcon: {
-    fontSize: 16,
-  },
+
   pillReminder: {
     marginHorizontal: spacing.lg,
     paddingHorizontal: spacing.md,
@@ -727,66 +506,7 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textAlign: 'center',
   },
-  smartRepliesContainer: {
-    marginHorizontal: spacing.lg,
-    marginBottom: spacing.md,
-    padding: spacing.md,
-    borderRadius: borderRadius.xl,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    gap: spacing.sm,
-  },
-  smartRepliesHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  smartRepliesTitle: {
-    ...typography.bodySmall,
-    color: colors.textSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  smartRepliesRefreshButton: {
-    width: 28,
-    height: 28,
-    borderRadius: borderRadius.full,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  smartRepliesRefreshText: {
-    color: colors.textSecondary,
-    fontSize: 16,
-  },
-  smartRepliesList: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    paddingVertical: spacing.sm,
-    paddingRight: spacing.sm,
-  },
-  smartReplyChip: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.surface2,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  smartReplyText: {
-    ...typography.bodySmall,
-    color: colors.text,
-  },
-  smartRepliesErrorText: {
-    ...typography.caption,
-    color: colors.warning,
-  },
-  smartRepliesHint: {
-    ...typography.caption,
-    color: colors.textTertiary,
-  },
+
   messagesList: {
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
@@ -898,28 +618,7 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.textSecondary,
   },
-  inputAccessory: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.sm,
-  },
-  inputAccessoryButton: {
-    width: 40,
-    height: 40,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  inputAccessoryDisabled: {
-    opacity: 0.5,
-  },
-  inputAccessoryIcon: {
-    fontSize: 16,
-  },
+
   inputArea: {
     marginHorizontal: spacing.lg,
     borderRadius: borderRadius.xl,
