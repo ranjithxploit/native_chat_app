@@ -11,7 +11,7 @@ import {
 } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { ActivityIndicator, View, Text } from 'react-native';
+import { ActivityIndicator, View, Text, Image } from 'react-native';
 
 // Screens
 import { LoginScreen } from '../screens/auth/LoginScreen';
@@ -91,7 +91,12 @@ const HomeTabNavigator: React.FC = () => {
         component={FriendsListScreen}
         options={{
           tabBarLabel: 'Friends',
-          tabBarIcon: ({ color }) => <Text style={{ fontSize: 20, color }}>👥</Text>,
+          tabBarIcon: ({ color }) => (
+            <Image 
+              source={require('../icons/friends.png')} 
+              style={{ width: 24, height: 24, tintColor: color }}
+            />
+          ),
         }}
       />
       <Tab.Screen
@@ -99,7 +104,12 @@ const HomeTabNavigator: React.FC = () => {
         component={ProfileScreen}
         options={{
           tabBarLabel: 'Profile',
-          tabBarIcon: ({ color }) => <Text style={{ fontSize: 20, color }}>👤</Text>,
+          tabBarIcon: ({ color }) => (
+            <Image 
+              source={require('../icons/profile.png')} 
+              style={{ width: 24, height: 24, tintColor: color }}
+            />
+          ),
         }}
       />
     </Tab.Navigator>

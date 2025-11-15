@@ -365,13 +365,13 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
 
       {/* Logout Button */}
       <View style={styles.section}>
-        <Button
-          label="Logout"
-          onPress={handleLogout}
-          variant="outline"
-          fullWidth
-          style={styles.logoutButton}
-        />
+        <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
+          <Image 
+            source={require('../../icons/logout.png')} 
+            style={styles.logoutIcon}
+          />
+          <Text style={styles.logoutButtonText}>Logout</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Version Info */}
@@ -518,6 +518,26 @@ const styles = StyleSheet.create({
   },
   logoutButton: {
     marginTop: spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.md,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    borderColor: colors.error,
+    backgroundColor: 'transparent',
+  },
+  logoutIcon: {
+    width: 24,
+    height: 24,
+    tintColor: colors.error,
+  },
+  logoutButtonText: {
+    ...typography.button,
+    color: colors.error,
+    fontSize: 16,
   },
   footer: {
     alignItems: 'center',

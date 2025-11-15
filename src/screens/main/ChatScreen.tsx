@@ -386,7 +386,10 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
       
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButtonWrapper}>
-          <Text style={styles.backButton}>⇦</Text>
+          <Image 
+            source={require('../../icons/back.png')} 
+            style={styles.backButtonIcon}
+          />
         </TouchableOpacity>
         <View style={styles.headerInfo}>
           <View style={styles.headerTopRow}>
@@ -447,7 +450,10 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
               {uploadingImage ? (
                 <ActivityIndicator size="small" color={colors.primary} />
               ) : (
-                <Text style={styles.attachButtonText}>📎</Text>
+                <Image 
+                  source={require('../../icons/image_upload.png')} 
+                  style={styles.attachButtonIcon}
+                />
               )}
             </TouchableOpacity>
 
@@ -464,15 +470,15 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
             <TouchableOpacity
               onPress={handleSendMessage}
               disabled={!messageText.trim() || uploadingImage}
-              style={[
-                styles.sendButton,
-                (!messageText.trim() || uploadingImage) && styles.sendButtonDisabled,
-              ]}
+              style={styles.sendButton}
             >
               {uploadingImage ? (
-                <ActivityIndicator color={colors.background} size="small" />
+                <ActivityIndicator size="small" color={colors.primary} />
               ) : (
-                <Text style={styles.sendButtonText}>➤</Text>
+                <Image 
+                  source={require('../../icons/send.png')} 
+                  style={styles.sendButtonIcon}
+                />
               )}
             </TouchableOpacity>
           </View>
@@ -499,10 +505,6 @@ const styles = StyleSheet.create({
   messagesWrapper: {
     flex: 1,
   },
-  inputAreaWrapper: {
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.sm,
-  },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -520,8 +522,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   backButtonWrapper: {
-    width: 40,
-    height: 40,
     borderRadius: borderRadius.full,
     backgroundColor: colors.surface2,
     borderWidth: 1,
@@ -535,12 +535,9 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
-  backButton: {
-    fontSize: 20,
-    color: colors.text,
-    fontWeight: '600',
-    borderBottomWidth: 8,
-    borderColor: colors.surface2,
+  backButtonIcon: {
+    width: 30,
+    height: 30,
   },
   headerInfo: {
     flex: 1,
@@ -715,12 +712,13 @@ const styles = StyleSheet.create({
   attachButton: {
     width: 36,
     height: 36,
-    borderRadius: borderRadius.full,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  attachButtonText: {
-    fontSize: 18,
+  attachButtonIcon: {
+    width: 24,
+    height: 24,
+    tintColor: colors.textSecondary,
   },
   input: {
     flex: 1,
@@ -735,18 +733,12 @@ const styles = StyleSheet.create({
   sendButton: {
     width: 36,
     height: 36,
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  sendButtonDisabled: {
-    opacity: 0.5,
-  },
-  sendButtonText: {
-    fontSize: 18,
-    color: colors.background,
-    fontWeight: '600',
+  sendButtonIcon: {
+    width: 28,
+    height: 28,
   },
   emptyStateCard: {
     marginTop: spacing.xl,
