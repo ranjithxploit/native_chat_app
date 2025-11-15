@@ -102,6 +102,11 @@ export const friendService = {
   },
   async getPendingRequests(userId: string): Promise<FriendRequest[]> {
     try {
+      if (!userId) {
+        console.warn('getPendingRequests: userId is required');
+        return [];
+      }
+
       const { data, error } = await supabase
         .from('friend_requests')
         .select(`
@@ -112,9 +117,13 @@ export const friendService = {
         .eq('status', 'pending')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Get pending requests error:', error);
+        return [];
+      }
 
-      return data || [];
+      // Filter out requests where sender was deleted
+      return data?.filter((req: any) => req.sender !== null) || [];
     } catch (error) {
       console.error('Get pending requests error:', error);
       return [];
@@ -123,6 +132,11 @@ export const friendService = {
 
   async getFriends(userId: string): Promise<User[]> {
     try {
+      if (!userId) {
+        console.warn('getFriends: userId is required');
+        return [];
+      }
+
       const { data, error } = await supabase
         .from('friendships')
         .select(`
@@ -131,9 +145,13 @@ export const friendService = {
         .eq('user_id', userId)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Get friends error:', error);
+        return [];
+      }
 
-      return data?.map((f: any) => f.friend) || [];
+      // Filter out null friends (in case user was deleted)
+      return data?.map((f: any) => f.friend).filter((friend: any) => friend !== null) || [];
     } catch (error) {
       console.error('Get friends error:', error);
       return [];
@@ -142,18 +160,111 @@ export const friendService = {
 
   async removeFriend(userId: string, friendId: string) {
     try {
-      const { error } = await supabase
+      console.log('🗑️ Removing friend and all associated data...');
+      console.log('   User ID:', userId);
+      console.log('   Friend ID:', friendId);
+
+      // FIRST: Check what friendships actually exist
+      const { data: existingFriendships, error: checkError } = await supabase
         .from('friendships')
-        .delete()
+        .select('*')
+        .or(`user_id.eq.${userId},user_id.eq.${friendId}`);
+
+      if (checkError) {
+        console.error('❌ Error checking friendships:', checkError);
+      } else {
+        console.log('🔍 Found friendships in database:', existingFriendships?.length || 0);
+        existingFriendships?.forEach((f: any) => {
+          console.log(`   - user_id: ${f.user_id}, friend_id: ${f.friend_id}`);
+        });
+      }
+
+      // Step 1: Delete all messages between these users
+      const { count: messagesCount, error: messagesError } = await supabase
+        .from('messages')
+        .delete({ count: 'exact' })
         .or(
-          `and(user_id.eq.${userId},friend_id.eq.${friendId}),and(user_id.eq.${friendId},friend_id.eq.${userId})`
+          `and(sender_id.eq.${userId},receiver_id.eq.${friendId}),and(sender_id.eq.${friendId},receiver_id.eq.${userId})`
         );
 
-      if (error) throw error;
+      if (messagesError) {
+        console.error('Failed to delete messages:', messagesError);
+      } else {
+        console.log(`✅ Deleted ${messagesCount || 0} messages`);
+      }
 
+      // Step 2: Delete all friend requests between these users
+      const { count: requestsCount, error: requestsError } = await supabase
+        .from('friend_requests')
+        .delete({ count: 'exact' })
+        .or(
+          `and(sender_id.eq.${userId},receiver_id.eq.${friendId}),and(sender_id.eq.${friendId},receiver_id.eq.${userId})`
+        );
+
+      if (requestsError) {
+        console.error('Failed to delete friend requests:', requestsError);
+      } else {
+        console.log(`✅ Deleted ${requestsCount || 0} friend requests`);
+      }
+
+      // Step 3: Delete friendship from user to friend
+      console.log('🔍 Attempting to delete: user_id =', userId, ', friend_id =', friendId);
+      const { count: count1, error: error1 } = await supabase
+        .from('friendships')
+        .delete({ count: 'exact' })
+        .eq('user_id', userId)
+        .eq('friend_id', friendId);
+
+      if (error1) {
+        console.error('Failed to delete friendship (user->friend):', error1);
+      } else {
+        console.log(`✅ Deleted ${count1 || 0} friendship (user->friend)`);
+      }
+
+      // Step 4: Delete friendship from friend to user
+      console.log('🔍 Attempting to delete: user_id =', friendId, ', friend_id =', userId);
+      const { count: count2, error: error2 } = await supabase
+        .from('friendships')
+        .delete({ count: 'exact' })
+        .eq('user_id', friendId)
+        .eq('friend_id', userId);
+
+      if (error2) {
+        console.error('Failed to delete friendship (friend->user):', error2);
+      } else {
+        console.log(`✅ Deleted ${count2 || 0} friendship (friend->user)`);
+      }
+
+      // Verify deletion
+      const { data: remainingFriendships } = await supabase
+        .from('friendships')
+        .select('*')
+        .or(`user_id.eq.${userId},user_id.eq.${friendId}`);
+      
+      console.log('🔍 Remaining friendships after deletion:', remainingFriendships?.length || 0);
+
+      // Step 5: Delete call records between these users (if table exists)
+      try {
+        const { count: callsCount, error: callsError } = await supabase
+          .from('calls')
+          .delete({ count: 'exact' })
+          .or(
+            `and(caller_id.eq.${userId},receiver_id.eq.${friendId}),and(caller_id.eq.${friendId},receiver_id.eq.${userId})`
+          );
+
+        if (callsError && callsError.code !== '42P01') {
+          console.error('Failed to delete call records:', callsError);
+        } else if (!callsError) {
+          console.log(`✅ Deleted ${callsCount || 0} call records`);
+        }
+      } catch (err) {
+        // Silently ignore if calls table doesn't exist
+      }
+
+      console.log('🎉 Friend removed successfully with all associated data!');
       return true;
     } catch (error) {
-      console.error('Remove friend error:', error);
+      console.error('❌ Remove friend error:', error);
       throw error;
     }
   },

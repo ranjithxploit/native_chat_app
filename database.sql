@@ -150,6 +150,12 @@ CREATE POLICY "Users can add friendships"
   FOR INSERT
   WITH CHECK (auth.uid() = user_id OR auth.uid() = friend_id);
 
+DROP POLICY IF EXISTS "Users can delete their own friendships" ON friendships;
+CREATE POLICY "Users can delete their own friendships"
+  ON friendships
+  FOR DELETE
+  USING (auth.uid() = user_id OR auth.uid() = friend_id);
+
 -- RLS Policies for messages
 DROP POLICY IF EXISTS "Users can view their messages" ON messages;
 CREATE POLICY "Users can view their messages"

@@ -17,7 +17,6 @@ import { ActivityIndicator, View, Text } from 'react-native';
 import { LoginScreen } from '../screens/auth/LoginScreen';
 import { RegisterScreen } from '../screens/auth/RegisterScreen';
 import { ChatScreen } from '../screens/main/ChatScreen';
-import { CallScreen } from '../screens/main/CallScreen';
 import { FriendsListScreen } from '../screens/main/FriendsListScreen';
 import { ProfileScreen } from '../screens/main/ProfileScreen';
 
@@ -41,9 +40,6 @@ type AuthStackParamList = {
 type HomeStackParamList = {
   Main: undefined;
   Chat: undefined;
-  Call: {
-    call?: any;
-  };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -124,13 +120,6 @@ const HomeNavigator: React.FC = () => {
       <HomeStack.Screen
         name="Chat"
         component={ChatScreen}
-      />
-      <HomeStack.Screen
-        name="Call"
-        component={CallScreen}
-        options={{
-          presentation: 'fullScreenModal',
-        }}
       />
     </HomeStack.Navigator>
   );

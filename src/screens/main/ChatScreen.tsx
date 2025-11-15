@@ -23,7 +23,6 @@ import { colors, spacing, typography, borderRadius } from '../../theme/theme';
 import { Button } from '../../components/Button';
 import { messageService } from '../../services/messageService';
 import { imageService } from '../../services/imageService';
-import { callService } from '../../services/callService';
 import { useAuthStore, useFriendStore, useMessageStore, useOnlineStore } from '../../store/useStore';
 
 type Props = NativeStackScreenProps<any, 'Chat'>;
@@ -37,6 +36,7 @@ export const ChatScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const user = useAuthStore((state) => state.user);
   const selectedFriend = useFriendStore((state) => state.selectedFriend);
+  const friends = useFriendStore((state) => state.friends);
   const messages = useMessageStore((state) => state.messages);
   const isOnline = useOnlineStore((state) => state.isOnline);
 
@@ -45,25 +45,25 @@ export const ChatScreen: React.FC<Props> = ({ navigation, route }) => {
   const deleteMessage = useMessageStore((state) => state.deleteMessage);
   const updateMessage = useMessageStore((state) => state.updateMessage);
 
+  // Check if still friends
+  useEffect(() => {
+    if (selectedFriend && friends.length > 0) {
+      const isFriend = friends.some(f => f.id === selectedFriend.id);
+      if (!isFriend) {
+        Alert.alert(
+          'Not Friends',
+          'You are no longer friends with this user',
+          [{ text: 'OK', onPress: () => navigation.goBack() }]
+        );
+      }
+    }
+  }, [friends, selectedFriend]);
+
   useEffect(() => {
     loadMessages();
     loadLastActive();
     subscribeToMessages();
   }, [selectedFriend]);
-
-  // Listen for incoming calls
-  useEffect(() => {
-    if (!user) return;
-
-    const subscription = callService.subscribeToIncomingCalls(user.id, (incomingCall) => {
-      // Auto-navigate to call screen when receiving a call
-      navigation.navigate('Call', { call: incomingCall });
-    });
-
-    return () => {
-      subscription?.unsubscribe();
-    };
-  }, [user?.id, navigation]);
 
   const loadMessages = async () => {
     if (!user || !selectedFriend) return;
@@ -136,6 +136,18 @@ export const ChatScreen: React.FC<Props> = ({ navigation, route }) => {
   const handleSendMessage = async () => {
     if (!messageText.trim() || !user || !selectedFriend) return;
 
+    // Check if still friends
+    const friends = useFriendStore.getState().friends;
+    const isFriend = friends.some(f => f.id === selectedFriend.id);
+    if (!isFriend) {
+      Alert.alert(
+        'Not Friends',
+        'You are no longer friends with this user',
+        [{ text: 'OK', onPress: () => navigation.goBack() }]
+      );
+      return;
+    }
+
     try {
       const message = await messageService.sendMessage(
         user.id,
@@ -153,24 +165,21 @@ export const ChatScreen: React.FC<Props> = ({ navigation, route }) => {
     }
   };
 
-  const handleStartCall = async () => {
+  const handlePickImage = async () => {
     if (!user || !selectedFriend) return;
 
-    try {
-      const call = await callService.initiateCall(
-        user.id,
-        user.username || 'User',
-        selectedFriend.id
+    // Check if still friends
+    const friends = useFriendStore.getState().friends;
+    const isFriend = friends.some(f => f.id === selectedFriend.id);
+    if (!isFriend) {
+      Alert.alert(
+        'Not Friends',
+        'You are no longer friends with this user',
+        [{ text: 'OK', onPress: () => navigation.goBack() }]
       );
-      
-      // Navigate to call screen
-      navigation.navigate('Call', { call });
-    } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to start call');
+      return;
     }
-  };
 
-  const handlePickImage = async () => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -179,7 +188,7 @@ export const ChatScreen: React.FC<Props> = ({ navigation, route }) => {
         quality: 0.8,
       });
 
-      if (!result.canceled && result.assets[0] && user && selectedFriend) {
+      if (!result.canceled && result.assets[0]) {
         setUploadingImage(true);
 
         const { url, key } = await imageService.uploadImage(user.id, result.assets[0].uri);
@@ -301,12 +310,6 @@ export const ChatScreen: React.FC<Props> = ({ navigation, route }) => {
             {isOnline(selectedFriend.id) ? '🟢 Online' : lastActive ? `Last active ${lastActive}` : '⚫ Offline'}
           </Text>
         </View>
-        <TouchableOpacity 
-          onPress={handleStartCall}
-          style={styles.callButton}
-        >
-          <Text style={styles.callButtonText}>📞</Text>
-        </TouchableOpacity>
       </View>
 
       {/* Messages List */}
@@ -403,18 +406,6 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.textTertiary,
     marginTop: spacing.xs,
-  },
-  callButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: colors.primary,
-  },
-  callButtonText: {
-    fontSize: 20,
-    fontWeight: '600',
   },
   messagesList: {
     paddingHorizontal: spacing.md,

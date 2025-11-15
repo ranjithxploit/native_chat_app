@@ -22,7 +22,7 @@ import { colors, spacing, typography, borderRadius, shadows } from '../../theme/
 import { Button } from '../../components/Button';
 import { friendService } from '../../services/friendService';
 import { authService } from '../../services/authService';
-import { useFriendStore, useAuthStore } from '../../store/useStore';
+import { useFriendStore, useAuthStore, useMessageStore } from '../../store/useStore';
 
 interface FriendsListScreenProps {
   navigation: any;
@@ -40,6 +40,7 @@ export const FriendsListScreen: React.FC<FriendsListScreenProps> = ({ navigation
   const user = useAuthStore((state) => state.user);
   const friends = useFriendStore((state) => state.friends);
   const friendRequests = useFriendStore((state) => state.friendRequests);
+  const selectedFriend = useFriendStore((state) => state.selectedFriend);
   const loading = useFriendStore((state) => state.loading);
 
   const setFriends = useFriendStore((state) => state.setFriends);
@@ -48,6 +49,7 @@ export const FriendsListScreen: React.FC<FriendsListScreenProps> = ({ navigation
   const setLoading = useFriendStore((state) => state.setLoading);
   const removeFriendFromStore = useFriendStore((state) => state.removeFriend);
   const removeFriendRequest = useFriendStore((state) => state.removeFriendRequest);
+  const setMessages = useMessageStore((state) => state.setMessages);
 
   useEffect(() => {
     loadFriendsAndRequests();
@@ -177,11 +179,39 @@ export const FriendsListScreen: React.FC<FriendsListScreenProps> = ({ navigation
         style: 'destructive',
         onPress: async () => {
           try {
+            console.log('👤 Removing friend:', friendId);
+            console.log('📋 Current friends count:', friends.length);
+            
+            // Remove from database
             await friendService.removeFriend(user.id, friendId);
-            removeFriendFromStore(friendId);
+            console.log('✅ Database removal complete');
+            
+            // Clear selected friend if it's the one being removed
+            if (selectedFriend?.id === friendId) {
+              setSelectedFriend(null);
+              console.log('✅ Selected friend cleared');
+            }
+            
+            // Clear messages
+            setMessages([]);
+            console.log('✅ Messages cleared');
+            
+            // Close modal
             setProfileModalVisible(false);
-            loadFriendsAndRequests();
+            
+            // Reload friends list from database
+            const updatedFriendsList = await friendService.getFriends(user.id);
+            console.log('📋 Updated friends count from DB:', updatedFriendsList.length);
+            setFriends(updatedFriendsList);
+            
+            // Also reload requests
+            const updatedRequestsList = await friendService.getPendingRequests(user.id);
+            setFriendRequests(updatedRequestsList);
+            
+            console.log('✅ UI updated with fresh data');
+            Alert.alert('Success', 'Friend removed successfully');
           } catch (error: any) {
+            console.error('❌ Remove friend error:', error);
             Alert.alert('Error', error.message || 'Failed to remove friend');
           }
         },

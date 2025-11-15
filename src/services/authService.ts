@@ -105,7 +105,6 @@ export const authService = {
         console.log('User profile created:', newUser.email);
         return fixAvatarUrl(newUser);
       }
-
       return fixAvatarUrl(userData);
     } catch (error) {
       console.error('Get current user error:', error);
@@ -127,8 +126,7 @@ export const authService = {
       }
 
       if (!existingUser) {
-        console.warn('⚠️  User profile does not exist, creating it...');
-        // Create the profile if it doesn't exist
+        console.warn('User profile does not exist, creating it...');
         const { data: newUser, error: createError } = await supabase
           .from('users')
           .insert([
