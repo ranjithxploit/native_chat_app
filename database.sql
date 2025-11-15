@@ -1,6 +1,3 @@
--- GhostLine - Supabase Database Schema
--- This version uses CREATE TABLE IF NOT EXISTS to preserve existing data
-
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 CREATE TABLE IF NOT EXISTS users (
@@ -13,7 +10,6 @@ CREATE TABLE IF NOT EXISTS users (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Create friend_requests table
 CREATE TABLE IF NOT EXISTS friend_requests (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   sender_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -23,7 +19,6 @@ CREATE TABLE IF NOT EXISTS friend_requests (
   CONSTRAINT no_self_request CHECK (sender_id != receiver_id)
 );
 
--- Create friendships table
 CREATE TABLE IF NOT EXISTS friendships (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -33,7 +28,6 @@ CREATE TABLE IF NOT EXISTS friendships (
   CONSTRAINT no_self_friend CHECK (user_id != friend_id)
 );
 
--- Create messages table
 CREATE TABLE IF NOT EXISTS messages (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   sender_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -47,14 +41,12 @@ CREATE TABLE IF NOT EXISTS messages (
   edited_at TIMESTAMP WITH TIME ZONE
 );
 
--- Create online_status table
 CREATE TABLE IF NOT EXISTS online_status (
   user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
   is_online BOOLEAN DEFAULT FALSE,
   last_seen TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Create notifications table
 CREATE TABLE IF NOT EXISTS notifications (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -65,7 +57,6 @@ CREATE TABLE IF NOT EXISTS notifications (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Create calls table
 CREATE TABLE IF NOT EXISTS calls (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   caller_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -77,7 +68,6 @@ CREATE TABLE IF NOT EXISTS calls (
   ended_at TIMESTAMP WITH TIME ZONE
 );
 
--- Create indexes for performance
 CREATE INDEX IF NOT EXISTS idx_friend_requests_receiver ON friend_requests(receiver_id);
 CREATE INDEX IF NOT EXISTS idx_friend_requests_sender ON friend_requests(sender_id);
 CREATE INDEX IF NOT EXISTS idx_friendships_user ON friendships(user_id);
@@ -91,7 +81,6 @@ CREATE INDEX IF NOT EXISTS idx_calls_receiver ON calls(receiver_id);
 CREATE INDEX IF NOT EXISTS idx_calls_caller ON calls(caller_id);
 CREATE INDEX IF NOT EXISTS idx_calls_status ON calls(status);
 
--- Enable Row Level Security (RLS)
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE friend_requests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE friendships ENABLE ROW LEVEL SECURITY;
@@ -100,7 +89,6 @@ ALTER TABLE online_status ENABLE ROW LEVEL SECURITY;
 ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE calls ENABLE ROW LEVEL SECURITY;
 
--- RLS Policies for users
 DROP POLICY IF EXISTS "Users can view all profiles" ON users;
 CREATE POLICY "Users can view all profiles"
   ON users
@@ -137,7 +125,6 @@ CREATE POLICY "Users can update their received requests"
   FOR UPDATE
   USING (auth.uid() = receiver_id);
 
--- RLS Policies for friendships
 DROP POLICY IF EXISTS "Users can view their friends" ON friendships;
 CREATE POLICY "Users can view their friends"
   ON friendships
@@ -156,7 +143,6 @@ CREATE POLICY "Users can delete their own friendships"
   FOR DELETE
   USING (auth.uid() = user_id OR auth.uid() = friend_id);
 
--- RLS Policies for messages
 DROP POLICY IF EXISTS "Users can view their messages" ON messages;
 CREATE POLICY "Users can view their messages"
   ON messages
@@ -175,7 +161,6 @@ CREATE POLICY "Users can delete their own messages"
   FOR UPDATE
   USING (auth.uid() = sender_id);
 
--- RLS Policies for online_status
 DROP POLICY IF EXISTS "Users can view online status" ON online_status;
 CREATE POLICY "Users can view online status"
   ON online_status
@@ -188,14 +173,12 @@ CREATE POLICY "Users can update their own status"
   FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
--- RLS Policies for notifications
 DROP POLICY IF EXISTS "Users can view their notifications" ON notifications;
 CREATE POLICY "Users can view their notifications"
   ON notifications
   FOR SELECT
   USING (auth.uid() = user_id);
 
--- RLS Policies for calls
 DROP POLICY IF EXISTS "Users can view their calls" ON calls;
 CREATE POLICY "Users can view their calls"
   ON calls
@@ -214,16 +197,6 @@ CREATE POLICY "Users can update their calls"
   FOR UPDATE
   USING (auth.uid() = caller_id OR auth.uid() = receiver_id);
 
--- Enable real-time for messages
--- Note: Tables are already in the publication, so we skip these if they error
--- Uncomment below if you need to add a new table to realtime:
--- ALTER PUBLICATION supabase_realtime ADD TABLE messages;
--- ALTER PUBLICATION supabase_realtime ADD TABLE friend_requests;
--- ALTER PUBLICATION supabase_realtime ADD TABLE online_status;
--- ALTER PUBLICATION supabase_realtime ADD TABLE notifications;
--- ALTER PUBLICATION supabase_realtime ADD TABLE calls;
-
--- Create function to update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN

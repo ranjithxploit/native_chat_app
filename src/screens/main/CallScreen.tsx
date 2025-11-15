@@ -53,7 +53,7 @@ export const CallScreen: React.FC<CallScreenProps> = ({
   }, [call?.id]);
 
   const isActive = callStatus === 'active';
-  const isIncoming = callStatus === 'ringing';
+  const isIncoming = callStatus === 'ringing' && !isOutgoingCall;
   const callUser = call?.caller_name || 'Unknown';
 
   // Timer for active calls
