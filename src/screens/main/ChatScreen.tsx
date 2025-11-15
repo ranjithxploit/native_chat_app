@@ -305,7 +305,7 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
           item.isFromUser ? styles.messageTextRight : styles.messageTextLeft,
         ]}
       >
-        {item.is_deleted ? '🛡️ This message was unsent' : item.content}
+        {item.is_deleted ? <Text style={{ fontWeight: 'bold' }}>This message was unsent</Text> : item.content}
       </Text>
     ) : (
       <Image source={{ uri: item.image_url }} style={styles.messageImage} />
@@ -382,94 +382,98 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.container}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 70}
       >
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButtonWrapper}>
-            <Text style={styles.backButton}>←</Text>
-          </TouchableOpacity>
-          <View style={styles.headerInfo}>
-            <View style={styles.headerTopRow}>
-              <View style={styles.avatarLarge}>
-                <LinearGradient
-                  colors={[colors.primary, colors.secondary]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.avatarGradient}
-                >
-                  <Text style={styles.avatarLargeText}>
-                    {selectedFriend.username?.charAt(0).toUpperCase()}
-                  </Text>
-                </LinearGradient>
-              </View>
-              <View style={styles.headerTextContainer}>
-                <Text style={styles.friendName}>{selectedFriend.username}</Text>
-                <Text style={styles.onlineStatus}>{getPresenceText()}</Text>
+        <View style={styles.chatContent}>
+          <View style={styles.header}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButtonWrapper}>
+              <Text style={styles.backButton}>←</Text>
+            </TouchableOpacity>
+            <View style={styles.headerInfo}>
+              <View style={styles.headerTopRow}>
+                <View style={styles.avatarLarge}>
+                  <LinearGradient
+                    colors={[colors.primary, colors.secondary]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.avatarGradient}
+                  >
+                    <Text style={styles.avatarLargeText}>
+                      {selectedFriend.username?.charAt(0).toUpperCase()}
+                    </Text>
+                  </LinearGradient>
+                </View>
+                <View style={styles.headerTextContainer}>
+                  <Text style={styles.friendName}>{selectedFriend.username}</Text>
+                  <Text style={styles.onlineStatus}>{getPresenceText()}</Text>
+                </View>
               </View>
             </View>
           </View>
+
+          {loadingMessages ? (
+            <ActivityIndicator size="large" color={colors.primary} style={styles.loader} />
+          ) : (
+            <View style={styles.messagesWrapper}>
+              <FlatList
+                ref={flatListRef}
+                data={enhancedMessages}
+                renderItem={renderMessageItem}
+                keyExtractor={(item) => item.id}
+                contentContainerStyle={styles.messagesList}
+                showsVerticalScrollIndicator={false}
+                onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
+                ListEmptyComponent={
+                  <View style={styles.emptyStateCard}>
+                    <Text style={styles.emptyCardTitle}>Say hello 👋</Text>
+                    <Text style={styles.emptyCardSubtitle}>Your conversation history is clean. Start a new vibe!</Text>
+                    <Button label="Send first message" onPress={() => flatListRef.current?.scrollToEnd()} />
+                  </View>
+                }
+              />
+            </View>
+          )}
         </View>
 
-        {loadingMessages ? (
-          <ActivityIndicator size="large" color={colors.primary} style={styles.loader} />
-        ) : (
-          <FlatList
-            ref={flatListRef}
-            data={enhancedMessages}
-            renderItem={renderMessageItem}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.messagesList}
-            showsVerticalScrollIndicator={false}
-            onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
-            ListEmptyComponent={
-              <View style={styles.emptyStateCard}>
-                <Text style={styles.emptyCardTitle}>Say hello 👋</Text>
-                <Text style={styles.emptyCardSubtitle}>Your conversation history is clean. Start a new vibe!</Text>
-                <Button label="Send first message" onPress={() => flatListRef.current?.scrollToEnd()} />
-              </View>
-            }
-          />
-        )}
+        <View style={styles.inputAreaWrapper}>
+          <View style={styles.inputArea}>
+            <TouchableOpacity
+              onPress={handlePickImage}
+              disabled={uploadingImage}
+              style={styles.attachButton}
+            >
+              {uploadingImage ? (
+                <ActivityIndicator size="small" color={colors.primary} />
+              ) : (
+                <Text style={styles.attachButtonText}>📎</Text>
+              )}
+            </TouchableOpacity>
 
+            <TextInput
+              style={styles.input}
+              placeholder="Message"
+              placeholderTextColor={colors.textTertiary}
+              value={messageText}
+              onChangeText={setMessageText}
+              multiline
+              editable={!uploadingImage}
+            />
 
-
-        <View style={styles.inputArea}>
-          <TouchableOpacity
-            onPress={handlePickImage}
-            disabled={uploadingImage}
-            style={styles.attachButton}
-          >
-            {uploadingImage ? (
-              <ActivityIndicator size="small" color={colors.primary} />
-            ) : (
-              <Text style={styles.attachButtonText}>📎</Text>
-            )}
-          </TouchableOpacity>
-
-          <TextInput
-            style={styles.input}
-            placeholder="Type a thoughtful message..."
-            placeholderTextColor={colors.textTertiary}
-            value={messageText}
-            onChangeText={setMessageText}
-            multiline
-            editable={!uploadingImage}
-          />
-
-          <TouchableOpacity
-            onPress={handleSendMessage}
-            disabled={!messageText.trim() || uploadingImage}
-            style={[
-              styles.sendButton,
-              (!messageText.trim() || uploadingImage) && styles.sendButtonDisabled,
-            ]}
-          >
-            {uploadingImage ? (
-              <ActivityIndicator color={colors.background} size="small" />
-            ) : (
-              <Text style={styles.sendButtonText}>➤</Text>
-            )}
-          </TouchableOpacity>
+            <TouchableOpacity
+              onPress={handleSendMessage}
+              disabled={!messageText.trim() || uploadingImage}
+              style={[
+                styles.sendButton,
+                (!messageText.trim() || uploadingImage) && styles.sendButtonDisabled,
+              ]}
+            >
+              {uploadingImage ? (
+                <ActivityIndicator color={colors.background} size="small" />
+              ) : (
+                <Text style={styles.sendButtonText}>➤</Text>
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
       </KeyboardAvoidingView>
     </View>
@@ -486,7 +490,17 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    paddingBottom: spacing.lg,
+    backgroundColor: colors.background,
+  },
+  chatContent: {
+    flex: 1,
+  },
+  messagesWrapper: {
+    flex: 1,
+  },
+  inputAreaWrapper: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.sm,
   },
   emptyContainer: {
     flex: 1,
@@ -565,9 +579,10 @@ const styles = StyleSheet.create({
   },
 
   messagesList: {
+    flexGrow: 1,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
-    paddingBottom: spacing.xl + spacing.lg,
+    paddingBottom: spacing.md,
   },
   loader: {
     flex: 1,
@@ -678,8 +693,6 @@ const styles = StyleSheet.create({
   },
 
   inputArea: {
-    marginHorizontal: spacing.lg,
-    marginBottom: spacing.md,
     borderRadius: borderRadius.xl,
     backgroundColor: colors.surface2,
     borderWidth: 1,
@@ -701,37 +714,39 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.full,
     justifyContent: 'center',
     alignItems: 'center',
+    marginRight: spacing.sm,
   },
   attachButtonText: {
-    fontSize: 20,
+    fontSize: 15,
   },
   input: {
-    flex: 1,
+    flex:1,
     color: colors.text,
     ...typography.body,
-    paddingVertical: spacing.md,
-    maxHeight: 120,
+    paddingVertical:0.1,
+    maxHeight: 16,
+    minHeight:44,
   },
   sendButton: {
-    width: 44,
-    height: 44,
-    borderRadius: borderRadius.full,
+    width: 40,
+    height: 40,
+    borderRadius: borderRadius.lg,
     backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#00A8E8',
+    shadowColor: '#03cee4ff',
     shadowOpacity: 0.3,
     shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 4,
-    elevation: 4,
+    shadowRadius: 8,
+    elevation: 6,
   },
   sendButtonDisabled: {
-    opacity: 0.5,
+    opacity: 0.6,
   },
   sendButtonText: {
-    fontSize: 20,
+    fontSize: 23,
     color: colors.background,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   emptyStateCard: {
     marginTop: spacing.xl,
@@ -740,8 +755,14 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 8,
+    elevation: 4,
     gap: spacing.sm,
   },
+
   emptyCardTitle: {
     ...typography.h3,
     color: colors.text,
