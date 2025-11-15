@@ -267,7 +267,10 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
             </View>
           ) : (
             <View style={styles.uploadBadge}>
-              <Text style={styles.uploadBadgeText}>📷</Text>
+              <Image
+                source={require('../../icons/camera.png')}
+                style={styles.cameraIcon}
+              />
             </View>
           )}
         </TouchableOpacity>
@@ -436,8 +439,10 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: colors.background,
   },
-  uploadBadgeText: {
-    fontSize: 18,
+  cameraIcon: {
+    width: 20,
+    height: 20,
+    tintColor: colors.background,
   },
   headerInfo: {
     alignItems: 'center',

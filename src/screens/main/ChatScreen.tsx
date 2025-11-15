@@ -75,7 +75,6 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
 
   useEffect(() => {
     loadMessages();
-    loadLastActive();
     const unsubscribe = subscribeToMessages();
     return () => {
       if (typeof unsubscribe === 'function') {
@@ -83,6 +82,25 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
       }
     };
   }, [selectedFriend]);
+
+  useEffect(() => {
+    if (!selectedFriend) return;
+
+    let isMounted = true;
+
+    const refreshLastActive = async () => {
+      if (!isMounted) return;
+      await loadLastActive();
+    };
+
+    refreshLastActive();
+    const intervalId = setInterval(refreshLastActive, 60000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(intervalId);
+    };
+  }, [selectedFriend?.id]);
 
 
 

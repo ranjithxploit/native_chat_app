@@ -240,14 +240,16 @@ export const FriendsListScreen: React.FC<FriendsListScreenProps> = ({ navigation
       )}
       <View style={styles.friendInfo}>
         <Text style={styles.friendName}>{item.username}</Text>
-        <Text style={styles.friendEmail}>{item.email}</Text>
       </View>
-      <Button
-        label="View Profile"
+      <TouchableOpacity
         onPress={() => handleViewProfile(item)}
-        variant="primary"
-        size="sm"
-      />
+        style={styles.viewProfileButton}
+      >
+        <Image 
+          source={require('../../icons/profile.png')} 
+          style={styles.viewProfileIcon}
+        />
+      </TouchableOpacity>
     </TouchableOpacity>
   );
 
@@ -310,14 +312,16 @@ export const FriendsListScreen: React.FC<FriendsListScreenProps> = ({ navigation
       )}
       <View style={styles.friendInfo}>
         <Text style={styles.friendName}>{item.username}</Text>
-        <Text style={styles.friendEmail}>{item.email}</Text>
       </View>
-      <Button
-        label="Add"
+      <TouchableOpacity
         onPress={() => handleSendFriendRequest(item.id)}
-        variant="primary"
-        size="sm"
-      />
+        style={styles.addButton}
+      >
+        <Image
+          source={require('../../icons/add_user.png')}
+          style={styles.addIcon}
+        />
+      </TouchableOpacity>
     </TouchableOpacity>
   );
 
@@ -457,6 +461,13 @@ export const FriendsListScreen: React.FC<FriendsListScreenProps> = ({ navigation
               </View>
             </View>
 
+            <View style={styles.profileModalEmailContainer}>
+              <Text style={styles.profileModalInfoLabel}>Email</Text>
+              <Text style={styles.profileModalEmailValue}>
+                {selectedProfileUser?.email || 'N/A'}
+              </Text>
+            </View>
+
             {/* Remove Friend Button */}
             <Button
               label="Remove Friend"
@@ -577,6 +588,16 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.textTertiary,
     marginTop: spacing.xs,
+  },
+  viewProfileButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  viewProfileIcon: {
+    width: 28,
+    height: 28,
   },
   removeButton: {
     width: 36,
@@ -706,5 +727,37 @@ const styles = StyleSheet.create({
   },
   profileModalRemoveButton: {
     marginTop: spacing.md,
+  },
+  profileModalEmailContainer: {
+    backgroundColor: colors.surface2,
+    borderRadius: borderRadius.lg,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.lg,
+    alignItems: 'center',
+  },
+  profileModalEmailValue: {
+    ...typography.body,
+    color: colors.text,
+    fontWeight: '500',
+    marginTop: spacing.xs,
+  },
+  addButton: {
+    width: 40,
+    height: 40,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  addIcon: {
+    width: 24,
+    height: 24,
+    tintColor: colors.background,
   },
 });
