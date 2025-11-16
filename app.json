@@ -1,9 +1,8 @@
 {
   "expo": {
     "name": "GhostLine",
-    "displayName": "GhostLine",
     "description": "Secure real-time chat application",
-    "version": "1.0.0",
+    "version": "2.0.0",
     "slug": "ghostline",
     "assetBundlePatterns": [
       "**/*"

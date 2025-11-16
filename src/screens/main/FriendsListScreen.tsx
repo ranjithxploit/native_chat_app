@@ -16,6 +16,7 @@ import {
   RefreshControl,
   TextInput,
   Modal,
+  StatusBar,
 } from 'react-native';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { colors, spacing, typography, borderRadius, shadows } from '../../theme/theme';
@@ -313,6 +314,8 @@ export const FriendsListScreen: React.FC<FriendsListScreenProps> = ({ navigation
 
   return (
     <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#000000" />
+      <View style={styles.statusBarSeparator} />
       {/* Search Bar */}
       <View style={styles.searchContainer}>
         <TextInput
@@ -428,7 +431,6 @@ export const FriendsListScreen: React.FC<FriendsListScreenProps> = ({ navigation
 
             {/* Profile Info */}
             <Text style={styles.profileModalUsername}>{selectedProfileUser?.username}</Text>
-            
             <View style={styles.profileModalInfoContainer}>
               <View style={styles.profileModalInfoItem}>
                 <Text style={styles.profileModalInfoLabel}>Joined</Text>
@@ -438,7 +440,6 @@ export const FriendsListScreen: React.FC<FriendsListScreenProps> = ({ navigation
                     : 'N/A'}
                 </Text>
               </View>
-              
               <View style={styles.profileModalInfoItem}>
                 <Text style={styles.profileModalInfoLabel}>Last Active</Text>
                 <Text style={styles.profileModalInfoValue}>
@@ -472,6 +473,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  statusBarSeparator: {
+    height: StatusBar.currentHeight || 0,
+    backgroundColor: '#000000',
   },
   searchContainer: {
     padding: 3,

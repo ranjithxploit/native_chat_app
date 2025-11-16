@@ -612,7 +612,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   statusBarBackground: {
-    height: 1,
+    height: 26,
     backgroundColor: colors.background,
   },
   backgroundGradient: {
