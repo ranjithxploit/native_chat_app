@@ -11,7 +11,6 @@ import {
   Image,
   TextInput,
   ActivityIndicator,
-  Keyboard,
   StatusBar,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -21,7 +20,7 @@ import { colors, spacing, typography, borderRadius } from '../../theme/theme';
 import { Button } from '../../components/Button';
 import { messageService } from '../../services/messageService';
 import { cloudinaryService } from '../../services/cloudinaryService';
-import { useAuthStore, useFriendStore, useMessageStore, useOnlineStore } from '../../store/useStore';
+import { useAuthStore, useFriendStore, useMessageStore } from '../../store/useStore';
 import { red } from 'react-native-reanimated/lib/typescript/Colors';
 const supabase = require('../../services/supabase').supabase;
 
@@ -47,17 +46,13 @@ type EnhancedMessage = MessageRecord & {
 export const ChatScreen: React.FC<Props> = ({ navigation }) => {
   const [messageText, setMessageText] = useState('');
   const [loadingMessages, setLoadingMessages] = useState(true);
-  const [lastActive, setLastActive] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
-  const [keyboardOffset, setKeyboardOffset] = useState(0);
   const flatListRef = useRef<FlatList>(null);
-  const isUserScrolling = useRef(false);
 
   const user = useAuthStore((state) => state.user);
   const selectedFriend = useFriendStore((state) => state.selectedFriend);
   const friends = useFriendStore((state) => state.friends);
   const messages = useMessageStore((state) => state.messages);
-  const isOnline = useOnlineStore((state) => state.isOnline);
 
   const setMessages = useMessageStore((state) => state.setMessages);
   const addMessage = useMessageStore((state) => state.addMessage);
@@ -88,50 +83,6 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
       }
     };
   }, [selectedFriend]);
-
-  useEffect(() => {
-    if (!selectedFriend) return;
-
-    let isMounted = true;
-
-    const refreshLastActive = async () => {
-      if (!isMounted) return;
-      await loadLastActive();
-    };
-
-    refreshLastActive();
-    const intervalId = setInterval(refreshLastActive, 60000);
-
-    return () => {
-      isMounted = false;
-      clearInterval(intervalId);
-    };
-  }, [selectedFriend?.id]);
-
-  useEffect(() => {
-    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
-    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
-
-    const showListener = Keyboard.addListener(showEvent, (event) => {
-      setKeyboardOffset(event.endCoordinates?.height || 0);
-      // Scroll to bottom when keyboard shows
-      isUserScrolling.current = false;
-      setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: true });
-      }, 100);
-    });
-
-    const hideListener = Keyboard.addListener(hideEvent, () => {
-      setKeyboardOffset(0);
-    });
-
-    return () => {
-      showListener.remove();
-      hideListener.remove();
-    };
-  }, []);
-
-
 
   const ensureStillFriends = () => {
     if (!selectedFriend) return false;
@@ -185,37 +136,6 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
       console.error('Load messages error:', error);
     } finally {
       setLoadingMessages(false);
-    }
-  };
-
-  const loadLastActive = async () => {
-    if (!selectedFriend) return;
-
-    try {
-      const { data, error } = await require('../../services/supabase').supabase
-        .from('online_status')
-        .select('last_seen')
-        .eq('user_id', selectedFriend.id)
-        .single();
-
-      if (!error && data) {
-        const lastSeenDate = new Date(data.last_seen);
-        const now = new Date();
-        const diffMinutes = Math.floor((now.getTime() - lastSeenDate.getTime()) / 60000);
-        
-        if (diffMinutes < 1) {
-          setLastActive('just now');
-        } else if (diffMinutes < 60) {
-          setLastActive(`${diffMinutes}m ago`);
-        } else if (diffMinutes < 1440) {
-          const hours = Math.floor(diffMinutes / 60);
-          setLastActive(`${hours}h ago`);
-        } else {
-          setLastActive(lastSeenDate.toLocaleDateString());
-        }
-      }
-    } catch (error) {
-      console.error('Load last active error:', error);
     }
   };
 
@@ -410,22 +330,11 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
     );
   }
 
-  const getPresenceText = () => {
-    if (!selectedFriend) return '';
-    if (isOnline(selectedFriend.id)) {
-      return '🟢 Online now';
-    }
-    if (lastActive) {
-      return `Last active ${lastActive}`;
-    }
-    return '⚫ Offline';
-  };
-
   return (
     <KeyboardAvoidingView 
       style={styles.screenWrapper}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : (StatusBar.currentHeight || 0)}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
       <StatusBar barStyle="light-content" backgroundColor={colors.background} />
       <View style={styles.statusBarBackground} />
@@ -511,7 +420,6 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
             </View>
             <View style={styles.headerTextContainer}>
               <Text style={styles.friendName}>{selectedFriend.username}</Text>
-              <Text style={styles.onlineStatus}>{getPresenceText()}</Text>
             </View>
           </View>
         </View>
@@ -526,23 +434,12 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
             data={enhancedMessages}
             renderItem={renderMessageItem}
             keyExtractor={(item) => item.id}
-            contentContainerStyle={[
-              styles.messagesList,
-              keyboardOffset > 0 && { paddingBottom: spacing.md + keyboardOffset },
-            ]}
+            contentContainerStyle={styles.messagesList}
             showsVerticalScrollIndicator={false}
-            onContentSizeChange={() => {
-              if (!isUserScrolling.current) {
-                flatListRef.current?.scrollToEnd({ animated: false });
-              }
-            }}
-            onScrollBeginDrag={() => {
-              isUserScrolling.current = true;
-            }}
-            onMomentumScrollEnd={() => {
-              setTimeout(() => {
-                isUserScrolling.current = false;
-              }, 500);
+            onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
+            maintainVisibleContentPosition={{
+              minIndexForVisible: 0,
+              autoscrollToTopThreshold: 10,
             }}
             ListEmptyComponent={
               <View style={styles.emptyStateCard}>
@@ -555,11 +452,7 @@ export const ChatScreen: React.FC<Props> = ({ navigation }) => {
         </View>
       )}
 
-      <View
-        style={[
-          styles.inputAreaWrapper,
-        ]}
-      >
+      <View style={styles.inputAreaWrapper}>
         <View style={styles.inputArea}>
           <TouchableOpacity
             onPress={handlePickImage}
@@ -612,7 +505,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   statusBarBackground: {
-    height: 26,
+    height: 28,
     backgroundColor: colors.background,
   },
   backgroundGradient: {
@@ -637,8 +530,10 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   header: {
-    paddingVertical: null,
+    paddingVertical: 4,
     paddingHorizontal: 9,
+    padding:30,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 8,
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -683,15 +578,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   avatarLargeText: {
-    fontSize: 22,
-    fontWeight: '700',
+    fontSize:22,
+    fontWeight: '600',
     color: colors.background,
   },
   headerTextContainer: {
     flex: 1,
+
   },
   friendName: {
     ...typography.h3,
+    fontWeight: '500',
+    fontSize: 20,
     color: colors.text,
   },
   onlineStatus: {
@@ -702,9 +600,9 @@ const styles = StyleSheet.create({
 
   messagesList: {
     flexGrow: 1,
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: 8,
     paddingTop: spacing.md,
-    paddingBottom: spacing.md,
+    paddingBottom: spacing.lg,
   },
   loader: {
     flex: 1,
@@ -713,7 +611,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     marginVertical: 2.5,
     alignItems: 'flex-end',
-    gap: 8,
+    gap: 6,
   },
   messageContainerLeft: {
     justifyContent: 'flex-start',
@@ -739,7 +637,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderRadius: borderRadius.xl,
-    borderWidth: 0,
     shadowColor: '#000',
     shadowOpacity: 0.1,
     shadowOffset: { width: 0, height: 3 },
@@ -762,7 +659,7 @@ const styles = StyleSheet.create({
   },
   messageText: {
     ...typography.body,
-    lineHeight: 22,
+    lineHeight: 18,
   },
   messageTextLeft: {
     color: colors.text,
@@ -816,8 +713,11 @@ const styles = StyleSheet.create({
 
   inputAreaWrapper: {
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.xs,
     backgroundColor: colors.background,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
   },
   inputArea: {
     borderRadius: borderRadius.lg,

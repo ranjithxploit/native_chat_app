@@ -362,7 +362,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
 
         <View style={styles.settingRow}>
           <Text style={styles.settingLabel}>App Version</Text>
-          <Text style={styles.settingValue}>1.0.0</Text>
+          <Text style={styles.settingValue}>2.1.0</Text>
         </View>
       </View>
 
@@ -379,7 +379,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
 
       {/* Version Info */}
       <View style={styles.footer}>
-        <Text style={styles.versionText}>GhostLine v1.0.0</Text>
+        <Text style={styles.versionText}>GhostLine v2.1.0</Text>
       </View>
     </ScrollView>
   );
@@ -459,14 +459,17 @@ const styles = StyleSheet.create({
     color: colors.textTertiary,
   },
   section: {
+    borderBottomWidth: 1,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
+    borderBottomColor: colors.border,
     backgroundColor: colors.surface,
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    
     marginBottom: spacing.md,
   },
   sectionTitle: {

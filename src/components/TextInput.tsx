@@ -11,6 +11,7 @@ import {
   Text,
   TouchableOpacity,
   ViewStyle,
+  Image,
 } from 'react-native';
 import { colors, spacing, borderRadius, typography } from '@theme/theme';
 
@@ -93,7 +94,14 @@ export const CustomTextInput: React.FC<TextInputProps> = ({
             onPress={() => setShowPassword(!showPassword)}
             style={styles.eyeIcon}
           >
-            <Text style={styles.eyeIconText}>{showPassword ? '👁️' : '👁️‍🗨️'}</Text>
+            <Image
+              source={
+                showPassword
+                  ? require('../icons/password_show.png')
+                  : require('../icons/password_hide.png')
+              }
+              style={styles.eyeIconImage}
+            />
           </TouchableOpacity>
         )}
       </View>
@@ -143,8 +151,10 @@ const styles = StyleSheet.create({
   eyeIcon: {
     padding: spacing.sm,
   },
-  eyeIconText: {
-    fontSize: 18,
+  eyeIconImage: {
+    width: 24,
+    height: 24,
+    tintColor: colors.textSecondary,
   },
   error: {
     ...typography.caption,
