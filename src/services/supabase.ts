@@ -1,11 +1,13 @@
 import { createClient } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const SUPABASE_URL = 'https://ulqurzxqxoklbgyucffd.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVscXVyenhxeG9rbGJneXVjZmZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIwMTc0NzMsImV4cCI6MjA3NzU5MzQ3M30.EXbZXVlZTpGEHRF1UQXuZM272xVOq91l5Qq2XWGLu3M';
+const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
+const SUPABASE_KEY = process.env.EXPO_PUBLIC_SUPABASE_KEY || '';
 
 if (!SUPABASE_URL || !SUPABASE_KEY) {
-  console.error('Missing Supabase credentials!');
+  console.error('❌ Missing Supabase credentials in .env file!');
+  console.error('URL:', SUPABASE_URL ? '✓ Set' : '✗ Missing');
+  console.error('KEY:', SUPABASE_KEY ? '✓ Set' : '✗ Missing');
 }
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {

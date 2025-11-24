@@ -1,10 +1,12 @@
 import * as FileSystem from 'expo-file-system/legacy';
 
-const CLOUDINARY_CLOUD_NAME = 'docg7tbr4';
-const CLOUDINARY_UPLOAD_PRESET = 'chat_app_avatars';
+const CLOUDINARY_CLOUD_NAME = process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME || '';
+const CLOUDINARY_UPLOAD_PRESET = process.env.EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET || '';
 
 if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_UPLOAD_PRESET) {
-  console.error('Missing Cloudinary configuration!');
+  console.error('❌ Missing Cloudinary configuration in .env file!');
+  console.error('CLOUD_NAME:', CLOUDINARY_CLOUD_NAME ? '✓ Set' : '✗ Missing');
+  console.error('UPLOAD_PRESET:', CLOUDINARY_UPLOAD_PRESET ? '✓ Set' : '✗ Missing');
 }
 
 export const cloudinaryService = {
@@ -20,7 +22,6 @@ export const cloudinaryService = {
       formData.append('file', `data:image/jpeg;base64,${base64}`);
       formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
       formData.append('public_id', `chat_app/avatars/${userId}`);
-      formData.append('folder', 'chat_app/avatars');
       const response = await fetch(
         `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
         {

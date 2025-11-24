@@ -23,13 +23,12 @@ export const friendService = {
         .select('id')
         .eq('sender_id', senderId)
         .eq('receiver_id', receiverId)
-        .eq('status', 'pending')
+        .eq('status', 'pending') //add later the reject and accept cases
         .single();
-
+// will do later 
       if (existingRequest) {
         throw new Error('Friend request already sent');
       }
-
       const { data, error } = await supabase
         .from('friend_requests')
         .insert([
@@ -42,9 +41,7 @@ export const friendService = {
         ])
         .select()
         .single();
-
       if (error) throw error;
-
       console.log('Friend request sent successfully');
       return data;
     } catch (error) {
