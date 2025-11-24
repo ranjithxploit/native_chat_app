@@ -22,6 +22,7 @@ import { CustomTextInput } from '../../components/TextInput';
 import { authService } from '../../services/authService';
 import { imageService } from '../../services/imageService';
 import { updateService } from '../../services/updateService';
+import { notificationService } from '../../services/notificationService';
 import { useAuthStore } from '../../store/useStore';
 
 interface ProfileScreenProps {
@@ -257,6 +258,30 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
     }
   };
 
+  const handleTestNotification = async () => {
+    try {
+      const hasPermission = await notificationService.requestPermissions();
+      if (!hasPermission) {
+        Alert.alert(
+          'Permission Required',
+          'Please enable notifications in your device settings to receive message alerts.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+
+      await notificationService.sendLocalNotification(
+        'Test Notification',
+        'If you see this, notifications are working! 🎉',
+        { type: 'test' }
+      );
+      
+      Alert.alert('Success', 'Test notification sent! Check your notification panel.');
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to send test notification');
+    }
+  };
+
   const handleLogout = () => {
     Alert.alert('Logout', 'Are you sure you want to logout?', [
       { text: 'Cancel', style: 'cancel' },
@@ -448,6 +473,13 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
           <Text style={styles.settingLabel}>App Version</Text>
           <Text style={styles.settingValue}>2.1.0</Text>
         </View>
+
+        <TouchableOpacity 
+          style={styles.testNotificationButton}
+          onPress={handleTestNotification}
+        >
+          <Text style={styles.testNotificationText}>🔔 Test Notifications</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Logout Button */}
@@ -620,6 +652,19 @@ const styles = StyleSheet.create({
   },
   updateButton: {
     marginTop: spacing.sm,
+  },
+  testNotificationButton: {
+    marginTop: spacing.md,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.sm,
+    alignItems: 'center',
+  },
+  testNotificationText: {
+    ...typography.button,
+    color: colors.background,
+    fontWeight: '600',
   },
   logoutButton: {
     marginTop: spacing.sm,

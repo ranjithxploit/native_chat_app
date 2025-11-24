@@ -18,13 +18,37 @@ const EXPO_PUSH_ENDPOINT = 'https://exp.host/--/api/v2/push/send';
 
 const ensureAndroidChannelAsync = async () => {
   if (Platform.OS !== 'android') return;
-  await Notifications.setNotificationChannelAsync('default', {
-    name: 'default',
-    importance: Notifications.AndroidImportance.MAX,
-    vibrationPattern: [0, 250, 250, 250],
-    lightColor: '#FF231F7C',
-    sound: 'default',
-  });
+  
+  try {
+    // Create default channel
+    await Notifications.setNotificationChannelAsync('default', {
+      name: 'Default',
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: '#FF231F7C',
+      sound: 'default',
+      enableVibrate: true,
+      enableLights: true,
+      showBadge: true,
+    });
+
+    // Create messages channel
+    await Notifications.setNotificationChannelAsync('messages', {
+      name: 'Messages',
+      importance: Notifications.AndroidImportance.HIGH,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: '#0080FF',
+      sound: 'default',
+      enableVibrate: true,
+      enableLights: true,
+      showBadge: true,
+      description: 'New message notifications',
+    });
+
+    console.log('✅ Android notification channels created');
+  } catch (error) {
+    console.error('❌ Failed to create Android channels:', error);
+  }
 };
 
 const getProjectId = () =>
@@ -99,16 +123,30 @@ const sendPushPayload = async (payload: any) => {
 export const notificationService = {
   async requestPermissions() {
     try {
+      // First, ensure Android channels exist
+      await ensureAndroidChannelAsync();
+
       const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      console.log('📱 Current notification permission status:', existingStatus);
+      
       if (existingStatus === 'granted') {
+        console.log('✅ Notification permissions already granted');
         return true;
       }
 
+      // Request permissions
       const { status } = await Notifications.requestPermissionsAsync();
-      console.log('Notification permission status:', status);
-      return status === 'granted';
+      console.log('📱 Notification permission request result:', status);
+      
+      if (status === 'granted') {
+        console.log('✅ Notification permissions granted');
+        return true;
+      } else {
+        console.warn('⚠️ Notification permissions denied');
+        return false;
+      }
     } catch (error) {
-      console.error('Request notification permission error:', error);
+      console.error('❌ Request notification permission error:', error);
       return false;
     }
   },
@@ -164,10 +202,12 @@ export const notificationService = {
           sound: 'default',
           badge: 1,
           data,
+          priority: Notifications.AndroidNotificationPriority.HIGH,
+          vibrate: [0, 250, 250, 250],
         },
         trigger: null,
       });
-      console.log('📢 Local notification sent');
+      console.log('📢 Local notification sent:', title);
     } catch (error) {
       console.error('❌ Send local notification error:', error);
     }

@@ -28,7 +28,9 @@
         "READ_EXTERNAL_STORAGE",
         "WRITE_EXTERNAL_STORAGE",
         "CAMERA",
-        "RECORD_AUDIO"
+        "RECORD_AUDIO",
+        "POST_NOTIFICATIONS",
+        "VIBRATE"
       ],
       "adaptiveIcon": {
         "foregroundImage": "./src/assets/icon.png",
@@ -38,7 +40,8 @@
         "image": "./src/assets/splash.png",
         "resizeMode": "contain",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "googleServicesFile": "./google-services.json"
     },
     "web": {},
     "plugins": [
@@ -47,6 +50,15 @@
         {
           "photosPermission": "Allow app to access your photos",
           "cameraPermission": "Allow app to access your camera"
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./src/assets/icon.png",
+          "color": "#ffffff",
+          "sounds": ["./src/assets/notification.wav"],
+          "mode": "production"
         }
       ]
     ],

@@ -204,12 +204,21 @@ export const RootNavigator: React.FC = () => {
     let isMounted = true;
     const init = async () => {
       try {
-        const token = await notificationService.registerForPushNotifications(user.id);
-        if (token) {
-          console.log('📱 Registered push token:', token);
+        // First, explicitly request notification permissions
+        const hasPermission = await notificationService.requestPermissions();
+        if (hasPermission) {
+          console.log('✅ Notification permissions granted');
+          
+          // Then register for push notifications
+          const token = await notificationService.registerForPushNotifications(user.id);
+          if (token) {
+            console.log('📱 Registered push token:', token);
+          }
+        } else {
+          console.warn('⚠️ Notification permissions denied - notifications will not work');
         }
       } catch (error) {
-        console.error('Push registration error:', error);
+        console.error('❌ Push registration error:', error);
       }
     };
 
@@ -229,16 +238,18 @@ export const RootNavigator: React.FC = () => {
 
       const activeFriend = selectedFriendRef.current;
       if (activeFriend && activeFriend.id === message.sender_id) {
+        console.log('📱 Message from active chat - skipping notification');
         return;
       }
 
       const senderName = friendsRef.current.find((friend) => friend.id === message.sender_id)?.username || 'New message';
       const preview = message.type === 'image' ? '📷 Photo' : message.content;
 
+      console.log('📢 Sending notification for message from:', senderName);
       notificationService.sendLocalNotification(senderName, preview, {
         type: 'message',
         senderId: message.sender_id,
-      });
+      }).catch(err => console.error('❌ Notification send failed:', err));
     });
 
     return () => {
