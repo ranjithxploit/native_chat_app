@@ -4,6 +4,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as SplashScreen from 'expo-splash-screen';
 import { RootNavigator } from './src/navigation/RootNavigator';
+import { updateService } from './src/services/updateService';
 
 LogBox.ignoreLogs([
   'expo-notifications: Android Push notifications (remote notifications) functionality provided by expo-notifications was removed from Expo Go',
@@ -40,6 +41,11 @@ export default function App() {
         clearTimeout(delayHandle);
       }
     };
+  }, []);
+
+  // Check for updates on app startup (silently in background)
+  useEffect(() => {
+    updateService.checkOnStartup();
   }, []);
 
   return (

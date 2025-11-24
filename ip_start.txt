@@ -2,3 +2,10 @@ PS D:\projects\chat_app> $env:REACT_NATIVE_PACKAGER_HOSTNAME="ip_lol"; npx expo 
 ipconfig | findstr /i "IPv4"
 
 
+PS D:\projects\chat_app> $env:REACT_NATIVE_PACKAGER_HOSTNAME="162.17.2.158"; npx expo start --clear
+
+$env:REACT_NATIVE_PACKAGER_HOSTNAME="162.17.2.158"; npx expo start --clear
+
+if u need to h@ck this ip address , please do it! 🥺
+
+eas update --branch preview --message "description uhmm"

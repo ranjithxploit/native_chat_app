@@ -21,6 +21,7 @@ import { Button } from '../../components/Button';
 import { CustomTextInput } from '../../components/TextInput';
 import { authService } from '../../services/authService';
 import { imageService } from '../../services/imageService';
+import { updateService } from '../../services/updateService';
 import { useAuthStore } from '../../store/useStore';
 
 interface ProfileScreenProps {
@@ -36,6 +37,9 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [imageKey, setImageKey] = useState(0); // Force re-render of Image component
+  const [checkingUpdate, setCheckingUpdate] = useState(false);
+  const [updateAvailable, setUpdateAvailable] = useState(false);
+  const [downloadingUpdate, setDownloadingUpdate] = useState(false);
   const [errors, setErrors] = useState({
     username: '',
     currentPassword: '',
@@ -75,6 +79,51 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
 
     return () => clearInterval(refreshInterval);
   }, [user, setUser]);
+
+  // Check for updates on mount
+  React.useEffect(() => {
+    checkForAppUpdates();
+  }, []);
+
+  const checkForAppUpdates = async () => {
+    setCheckingUpdate(true);
+    try {
+      const { isAvailable } = await updateService.checkForUpdates();
+      setUpdateAvailable(isAvailable);
+      
+      if (isAvailable) {
+        Alert.alert(
+          '🎉 Update Available!',
+          'A new version of the app is available. Update now for the latest features and improvements.',
+          [
+            { text: 'Later', style: 'cancel' },
+            { text: 'Update Now', onPress: handleUpdateApp },
+          ]
+        );
+      }
+    } catch (error) {
+      console.error('Update check error:', error);
+    } finally {
+      setCheckingUpdate(false);
+    }
+  };
+
+  const handleUpdateApp = async () => {
+    setDownloadingUpdate(true);
+    try {
+      const success = await updateService.downloadAndApplyUpdate();
+      if (success) {
+        Alert.alert('Success', 'Update installed! The app will reload now.');
+      } else {
+        Alert.alert('Info', 'No new update to install.');
+      }
+    } catch (error: any) {
+      Alert.alert('Error', 'Failed to download update. Please try again.');
+      console.error('Update download error:', error);
+    } finally {
+      setDownloadingUpdate(false);
+    }
+  };
 
   const validatePasswordChange = (): boolean => {
     const newErrors = {
@@ -356,6 +405,41 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
         />
       </View>
 
+      {/* App Updates Section */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>App Updates</Text>
+
+        <View style={styles.updateContainer}>
+          {updateAvailable && (
+            <View style={styles.updateBadgeContainer}>
+              <Text style={styles.updateBadgeText}>🎉 Update Available</Text>
+            </View>
+          )}
+          
+          <Text style={styles.updateDescription}>
+            {updateAvailable 
+              ? 'A new version is ready to install'
+              : 'Your app is up to date'}
+          </Text>
+
+          <Button
+            label={
+              downloadingUpdate
+                ? 'Downloading...'
+                : checkingUpdate
+                ? 'Checking...'
+                : updateAvailable
+                ? 'Update Now'
+                : 'Check for Updates'
+            }
+            onPress={updateAvailable ? handleUpdateApp : checkForAppUpdates}
+            loading={downloadingUpdate || checkingUpdate}
+            fullWidth
+            style={styles.updateButton}
+          />
+        </View>
+      </View>
+
       {/* Settings Section */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Settings</Text>
@@ -512,6 +596,30 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.textSecondary,
     fontWeight: '400',
+  },
+  updateContainer: {
+    marginTop: spacing.md,
+  },
+  updateBadgeContainer: {
+    backgroundColor: colors.primary,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.md,
+    borderRadius: borderRadius.sm,
+    alignSelf: 'flex-start',
+    marginBottom: spacing.sm,
+  },
+  updateBadgeText: {
+    ...typography.caption,
+    color: colors.background,
+    fontWeight: '600',
+  },
+  updateDescription: {
+    ...typography.body,
+    color: colors.textSecondary,
+    marginBottom: spacing.md,
+  },
+  updateButton: {
+    marginTop: spacing.sm,
   },
   logoutButton: {
     marginTop: spacing.sm,
