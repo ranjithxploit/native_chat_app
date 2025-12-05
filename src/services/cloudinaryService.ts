@@ -4,7 +4,7 @@ const CLOUDINARY_CLOUD_NAME = process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME || '
 const CLOUDINARY_UPLOAD_PRESET = process.env.EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET || '';
 
 if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_UPLOAD_PRESET) {
-  console.error('❌ Missing Cloudinary configuration in .env file!');
+  console.error('Missing Cloudinary configuration in .env file!');
   console.error('CLOUD_NAME:', CLOUDINARY_CLOUD_NAME ? '✓ Set' : '✗ Missing');
   console.error('UPLOAD_PRESET:', CLOUDINARY_UPLOAD_PRESET ? '✓ Set' : '✗ Missing');
 }

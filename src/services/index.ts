@@ -13,7 +13,7 @@ export type {
   FriendRequest,
   Friendship,
   Message,
-  Conversation,
+  Conversation, 
   OnlineStatus,
   Notification,
 } from '../types/database';
